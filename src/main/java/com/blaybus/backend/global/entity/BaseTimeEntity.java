@@ -1,4 +1,4 @@
-package com.blaybus.backend.global.enum_type;
+package com.blaybus.backend.global.entity;
 
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
