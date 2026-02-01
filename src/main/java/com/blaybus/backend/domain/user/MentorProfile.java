@@ -38,7 +38,7 @@ public class MentorProfile {
         this.major = major;
         this.studentIdCard = studentIdCard;
         this.bio = bio;
+        this.status = status;
         this.subject = subject;
-        this.specialty = specialty;
     }
 }
