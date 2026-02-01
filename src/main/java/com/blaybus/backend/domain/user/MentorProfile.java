@@ -30,15 +30,15 @@ public class MentorProfile {
     private boolean status;
 
     @Column(nullable = false)
-    private String specialty;
+    private String subject;
 
     @Builder
-    public MentorProfile(User user, String major, String studentIdCard, String bio, boolean status, String specialty) {
+    public MentorProfile(User user, String major, String studentIdCard, String bio, boolean status, String subject) {
         this.user = user;
         this.major = major;
         this.studentIdCard = studentIdCard;
         this.bio = bio;
-        this.status = status;
+        this.subject = subject;
         this.specialty = specialty;
     }
 }
