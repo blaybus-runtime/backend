@@ -14,13 +14,16 @@ import java.time.LocalDate;
 @RequestMapping("/api/v1/study")
 public class DailyTodoController {
 
-    private final DailyTodoService dailyStudyService;
+    private final DailyTodoService dailyTodoService;
 
     @GetMapping("/daily")
     public ResponseEntity<DailyTodoResponseDto> getDaily(
+
             @RequestParam Long menteeId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        return ResponseEntity.ok(dailyStudyService.getDaily(menteeId, date));
+        System.out.println("✅ DailyTodoController HIT");
+        return ResponseEntity.ok(dailyTodoService.getDaily(menteeId, date));
     }
 }

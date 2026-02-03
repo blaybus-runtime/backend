@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-public interface DailyTodoRepository extends JpaRepository<StudyPlanner, Long> {
+public interface DailyStudyPlannerTodoRepository extends JpaRepository<StudyPlanner, Long> {
 
     Optional<StudyPlanner> findTop1ByMentee_UserIdAndPlanDateOrderByCreatedAtDesc(Long menteeUserId, LocalDate planDate);
 
