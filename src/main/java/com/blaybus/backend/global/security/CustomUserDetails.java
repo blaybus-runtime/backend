@@ -4,6 +4,7 @@ import com.blaybus.backend.domain.user.User;
 
 import java.util.Collection;
 import java.util.List;
+import com.blaybus.backend.global.enum_type.Role;
 import org.springframework.security.core.*;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,6 +16,8 @@ public class CustomUserDetails implements UserDetails {
     public CustomUserDetails(User user) { this.user = user; }
 
     public User getUser() { return user; }
+    public Long getUserId() { return user.getId(); }
+    public Role getRole() { return user.getRole(); }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

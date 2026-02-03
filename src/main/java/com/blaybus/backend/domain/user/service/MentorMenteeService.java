@@ -19,7 +19,7 @@ public class MentorMenteeService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public CreateMenteeResponse createMentee(CreateMenteeRequest request) {
+    public CreateMenteeResponse createMentee(Long mentorId, CreateMenteeRequest request) {
 
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("이미 존재하는 username입니다.");
