@@ -9,7 +9,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DailyStudyResponseDto {
+public class DailyTodoResponseDto {
 
     private Long menteeId;
     private LocalDate date;

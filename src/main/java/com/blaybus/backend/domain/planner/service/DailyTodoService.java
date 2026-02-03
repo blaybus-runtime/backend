@@ -2,9 +2,9 @@ package com.blaybus.backend.domain.planner.service;
 
 import com.blaybus.backend.domain.planner.StudyPlanner;
 import com.blaybus.backend.domain.planner.TodoTask;
-import com.blaybus.backend.domain.planner.dto.response.DailyStudyResponseDto;
-import com.blaybus.backend.domain.planner.repository.StudyPlannerRepository;
-import com.blaybus.backend.domain.planner.repository.TodoTaskRepository;
+import com.blaybus.backend.domain.planner.dto.response.DailyTodoResponseDto;
+import com.blaybus.backend.domain.planner.repository.DailyTodoRepository;
+import com.blaybus.backend.domain.planner.repository.TodoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,12 +16,12 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class DailyStudyService {
+public class DailyTodoService {
 
-    private final StudyPlannerRepository studyPlannerRepository;
-    private final TodoTaskRepository todoTaskRepository;
+    private final DailyTodoRepository studyPlannerRepository;
+    private final TodoRepository todoTaskRepository;
 
-    public DailyStudyResponseDto getDaily(Long menteeId, LocalDate date) {
+    public DailyTodoResponseDto getDaily(Long menteeId, LocalDate date) {
         LocalDate targetDate = (date != null) ? date : LocalDate.now();
 
         Optional<StudyPlanner> plannerOpt =
@@ -29,10 +29,10 @@ public class DailyStudyService {
 
         // 플래너 자체가 없으면 빈 값 반환 (프론트가 안전하게 처리 가능)
         if (plannerOpt.isEmpty()) {
-            return DailyStudyResponseDto.builder()
+            return DailyTodoResponseDto.builder()
                     .menteeId(menteeId)
                     .date(targetDate)
-                    .progress(DailyStudyResponseDto.ProgressDto.builder()
+                    .progress(DailyTodoResponseDto.ProgressDto.builder()
                             .completionRate(0)
                             .bySubject(Collections.emptyList())
                             .build())
@@ -52,7 +52,7 @@ public class DailyStudyService {
         Map<String, List<TodoTask>> bySubjectMap = tasks.stream()
                 .collect(Collectors.groupingBy(TodoTask::getSubject));
 
-        List<DailyStudyResponseDto.SubjectProgressDto> bySubject = bySubjectMap.entrySet().stream()
+        List<DailyTodoResponseDto.SubjectProgressDto> bySubject = bySubjectMap.entrySet().stream()
                 .map(entry -> {
                     String subject = entry.getKey();
                     List<TodoTask> subjectTasks = entry.getValue();
@@ -60,18 +60,18 @@ public class DailyStudyService {
                     long subjectDone = subjectTasks.stream().filter(TodoTask::isCompleted).count();
                     int percent = (subjectTotal == 0) ? 0 : (int) Math.round(subjectDone * 100.0 / subjectTotal);
 
-                    return DailyStudyResponseDto.SubjectProgressDto.builder()
+                    return DailyTodoResponseDto.SubjectProgressDto.builder()
                             .subject(subject)
                             .percent(percent)
                             .build();
                 })
                 // 정렬은 일단 subject 문자열 기준 (UI에서 정렬 필요하면 바꿔줄게)
-                .sorted(Comparator.comparing(DailyStudyResponseDto.SubjectProgressDto::getSubject))
+                .sorted(Comparator.comparing(DailyTodoResponseDto.SubjectProgressDto::getSubject))
                 .toList();
 
         // 3) todos dto
-        List<DailyStudyResponseDto.TodoDto> todoDtos = tasks.stream()
-                .map(t -> DailyStudyResponseDto.TodoDto.builder()
+        List<DailyTodoResponseDto.TodoDto> todoDtos = tasks.stream()
+                .map(t -> DailyTodoResponseDto.TodoDto.builder()
                         .id(t.getId())
                         .content(t.getContent())
                         .subject(t.getSubject())
@@ -81,10 +81,10 @@ public class DailyStudyService {
                         .build())
                 .toList();
 
-        return DailyStudyResponseDto.builder()
+        return DailyTodoResponseDto.builder()
                 .menteeId(menteeId)
                 .date(targetDate)
-                .progress(DailyStudyResponseDto.ProgressDto.builder()
+                .progress(DailyTodoResponseDto.ProgressDto.builder()
                         .completionRate(completionRate)
                         .bySubject(bySubject)
                         .build())

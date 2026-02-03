@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface TodoTaskRepository extends JpaRepository<TodoTask, Long> {
+public interface TodoRepository extends JpaRepository<TodoTask, Long> {
 
     /**
      * 플래너에 속한 투두 전체 조회
