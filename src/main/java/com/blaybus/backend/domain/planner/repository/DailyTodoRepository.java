@@ -11,5 +11,5 @@ public interface DailyTodoRepository extends JpaRepository<StudyPlanner, Long> {
 
     Optional<StudyPlanner> findTop1ByMentee_UserIdAndPlanDateOrderByCreatedAtDesc(Long menteeUserId, LocalDate planDate);
 
-    List<StudyPlanner> findAllByMenteeIdAndPlanDateBetween(Long menteeId, LocalDate startDate, LocalDate endDate);
+    List<StudyPlanner> findAllByMentee_UserIdAndPlanDateBetween(Long menteeId, LocalDate startDate, LocalDate endDate);
 }
