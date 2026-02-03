@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -29,6 +31,9 @@ public class StudyPlanner extends BaseTimeEntity {
     private Integer studyTime;
 
     private String dailyComment;
+
+    @OneToMany(mappedBy = "planner", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TodoTask> tasks = new ArrayList<>();
 
     @Builder
     public StudyPlanner(MenteeProfile mentee, LocalDate planDate, Integer studyTime, String dailyComment) {
