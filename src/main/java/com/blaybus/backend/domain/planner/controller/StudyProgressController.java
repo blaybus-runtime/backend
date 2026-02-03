@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/study")
@@ -24,12 +25,13 @@ public class StudyProgressController {
      예시: GET /api/v1/study/progress?menteeId=2&startDate=2026-02-01&endDate=2026-02-28
      */
     @GetMapping("/progress")
-    public ResponseEntity<StudyProgressResponse> getStudyProgress(
-            @RequestParam Long menteeId,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate
+    public ResponseEntity<Map<String, Object>> getStudyProgress( // 👈 여기 타입 변경
+                                                                 @RequestParam Long menteeId,
+                                                                 @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+                                                                 @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate
     ) {
-        StudyProgressResponse response = studyProgressService.getProgress(menteeId, startDate, endDate);
+        // 👈 서비스가 이미 Map을 반환하므로 그대로 리턴
+        Map<String, Object> response = studyProgressService.getProgress(menteeId, startDate, endDate);
         return ResponseEntity.ok(response);
     }
 }
