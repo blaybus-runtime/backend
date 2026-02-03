@@ -4,7 +4,7 @@ import com.blaybus.backend.domain.planner.StudyPlanner;
 import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.dto.response.StudyProgressResponse;
 import com.blaybus.backend.domain.planner.dto.response.StudyProgressResponse.*;
-import com.blaybus.backend.domain.planner.repository.DailyTodoRepository;
+import com.blaybus.backend.domain.planner.repository.DailyStudyPlannerTodoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class StudyProgressService {
-    private final DailyTodoRepository dailyTodoRepository;
+    private final DailyStudyPlannerTodoRepository dailyTodoRepository;
 
     /*
     /api/v1/study/progress/mentorId=1&startDate=2026-02-01&endDate=2026-02-04 담당하는 메소드입니다.
