@@ -18,10 +18,12 @@ public class DailyTodoController {
 
     @GetMapping("/daily")
     public ResponseEntity<DailyTodoResponseDto> getDaily(
+
             @RequestParam Long menteeId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
+        System.out.println("✅ DailyTodoController HIT");
         return ResponseEntity.ok(dailyTodoService.getDaily(menteeId, date));
     }
 }
