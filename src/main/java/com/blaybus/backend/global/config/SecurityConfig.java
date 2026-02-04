@@ -28,6 +28,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/study/**").permitAll()
                         .requestMatchers("/api/v1/columns/**").permitAll() // ✅ 칼럼 조회는 열어두기
                         .requestMatchers("/api/v1/study/**").permitAll() // ✅ study 관련 기능도 열어두기
+                        .requestMatchers("/api/v1/matchings/**").permitAll()
                         .requestMatchers("/api/v1/mentors/**").hasRole("MENTOR")
                         .requestMatchers("/api/v1/mentees/**").hasRole("MENTEE")
                         .anyRequest().authenticated()

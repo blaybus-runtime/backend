@@ -48,6 +48,9 @@ public class TodoTask {
     @Column(nullable = false)
     private String goal;
 
+    @OneToOne(mappedBy = "task", fetch = FetchType.LAZY)
+    private Feedback feedback;
+
     @Builder
     public TodoTask(StudyPlanner planner, Worksheet worksheet, String content, String subject, String title, String goal, boolean isCompleted, Integer priority, TaskType taskType) {
         this.planner = planner;
