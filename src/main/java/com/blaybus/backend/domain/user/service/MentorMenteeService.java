@@ -54,6 +54,7 @@ public class MentorMenteeService {
                 .email(p.getEmail())
                 .highSchool(p.getHighSchool())
                 .grade(p.getGrade())
+                .targetUniv(p.getTargetUniv())
                 .subjects(p.getSubjects())
                 .messageToMentor(p.getMessageToMentor())
                 .build();
@@ -75,6 +76,7 @@ public class MentorMenteeService {
                         .email(menteeProfile.getEmail())
                         .highSchool(menteeProfile.getHighSchool())
                         .grade(menteeProfile.getGrade())
+                        .targetUniv(menteeProfile.getTargetUniv())
                         .subjects(menteeProfile.getSubjects())
                         .messageToMentor(menteeProfile.getMessageToMentor())
                         .build())
