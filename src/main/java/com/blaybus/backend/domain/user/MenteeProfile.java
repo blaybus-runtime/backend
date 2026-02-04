@@ -57,4 +57,17 @@ public class MenteeProfile {
         if (subjects != null) this.subjects = subjects;
         this.messageToMentor = messageToMentor;
     }
+
+    public void updatePhoneNumber(String v){ this.phoneNumber = v; }
+    public void updateEmail(String v){ this.email = v; }
+    public void updateHighSchool(String v){ this.highSchool = v; }
+    public void updateGrade(Integer v){ this.grade = v; }
+    public void updateTargetUniv(String v){ this.targetUniv = v; }
+    public void updateMessageToMentor(String v){ this.messageToMentor = v; }
+
+    public void replaceSubjects(List<String> newSubjects){
+        this.subjects.clear();
+        if (newSubjects != null) this.subjects.addAll(newSubjects);
+    }
+
 }

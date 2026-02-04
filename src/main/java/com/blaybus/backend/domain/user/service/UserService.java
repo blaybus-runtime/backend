@@ -70,4 +70,56 @@ public class UserService {
                 .profile(profile)
                 .build();
     }
+
+    @Transactional
+    public MyInfoData updateMyInfoByUsername(String username, UpdateMyInfoRequest req) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // 1) User 공통 수정 (들어온 값만)
+        if (req.getName() != null) user.updateName(req.getName());
+        if (req.getProfileImage() != null) user.updateProfileImage(req.getProfileImage());
+
+        String role = user.getRole().name();
+        UpdateMyInfoRequest.Profile p = req.getProfile(); // profile 자체가 null일 수 있음
+
+        if ("MENTEE".equals(role)) {
+            MenteeProfile mp = menteeProfileRepository.findById(user.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("MenteeProfile not found"));
+
+            if (p != null) {
+                if (p.getPhoneNumber() != null) mp.updatePhoneNumber(p.getPhoneNumber());
+                if (p.getEmail() != null) mp.updateEmail(p.getEmail());
+                if (p.getHighSchool() != null) mp.updateHighSchool(p.getHighSchool());
+                if (p.getGrade() != null) mp.updateGrade(p.getGrade());
+                if (p.getTargetUniv() != null) mp.updateTargetUniv(p.getTargetUniv());
+                if (p.getMessageToMentor() != null) mp.updateMessageToMentor(p.getMessageToMentor());
+
+                // subjects는 "있으면 교체", null이면 유지
+                if (p.getSubjects() != null) {
+                    mp.replaceSubjects(p.getSubjects());
+                }
+            }
+
+        } else if ("MENTOR".equals(role)) {
+            MentorProfile mp = mentorProfileRepository.findById(user.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("MentorProfile not found"));
+
+            if (p != null) {
+                if (p.getMajor() != null) mp.updateMajor(p.getMajor());
+                if (p.getStudentIdCard() != null) mp.updateStudentIdCard(p.getStudentIdCard());
+                if (p.getBio() != null) mp.updateBio(p.getBio());
+                if (p.getStatus() != null) mp.updateStatus(p.getStatus());
+                if (p.getSubject() != null) mp.updateSubject(p.getSubject());
+            }
+        } else {
+            throw new IllegalArgumentException("Unknown role: " + role);
+        }
+
+        // 수정 결과를 동일한 조회 DTO 형태로 리턴
+        return getMyInfoByUsername(username);
+    }
+
+
 }
