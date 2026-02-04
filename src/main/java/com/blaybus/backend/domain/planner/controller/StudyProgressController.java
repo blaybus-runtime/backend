@@ -2,6 +2,7 @@ package com.blaybus.backend.domain.planner.controller;
 
 import com.blaybus.backend.domain.planner.dto.response.StudyProgressResponse;
 import com.blaybus.backend.domain.planner.service.StudyProgressService;
+import com.blaybus.backend.global.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -25,13 +26,11 @@ public class StudyProgressController {
      예시: GET /api/v1/study/progress?menteeId=2&startDate=2026-02-01&endDate=2026-02-28
      */
     @GetMapping("/progress")
-    public ResponseEntity<Map<String, Object>> getStudyProgress( // 👈 여기 타입 변경
-                                                                 @RequestParam Long menteeId,
-                                                                 @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
-                                                                 @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate
+    public ResponseEntity<ApiResponse<StudyProgressResponse>> getStudyProgress( @RequestParam Long menteeId,
+                                                                                @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+                                                                                @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate
     ) {
-        // 👈 서비스가 이미 Map을 반환하므로 그대로 리턴
-        Map<String, Object> response = studyProgressService.getProgress(menteeId, startDate, endDate);
-        return ResponseEntity.ok(response);
+        StudyProgressResponse response = studyProgressService.getProgress(menteeId, startDate, endDate);
+        return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 }
