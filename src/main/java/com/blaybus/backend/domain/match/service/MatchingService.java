@@ -2,6 +2,7 @@ package com.blaybus.backend.domain.match.service;
 
 import com.blaybus.backend.domain.match.Matching;
 import com.blaybus.backend.domain.match.dto.response.MenteeCardResponse;
+import com.blaybus.backend.domain.match.dto.response.MenteeTaskResponse;
 import com.blaybus.backend.domain.match.repository.MatchingRepository;
 import com.blaybus.backend.domain.planner.repository.DailyStudyPlannerTodoRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,11 +39,38 @@ public class MatchingService {
                             .menteeId(menteeId)
                             .name(matching.getMentee().getUser().getName())
                             .profileImageUrl(matching.getMentee().getUser().getProfileImage())
-                            .school(matching.getMentee().getSchoolName())
                             .isDailyTodoCompleted(isCompleted)
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    public List<MenteeTaskResponse> getMenteeDailyTasks(Long mentorId, LocalDate targetDate) {
+        // 현재 멘토의 매칭 정보를 모두 가져옴
+        List<Matching> matchings = matchingRepository.findAllByMentorId(mentorId);
+        List<MenteeTaskResponse> allTasks = new ArrayList<>();
+
+        for (Matching matching : matchings) {
+            Long menteeId = matching.getMentee().getUserId();
+            String menteeName = matching.getMentee().getUser().getName();
+
+            //해당 날짜의 플래너를 조회
+            dailyStudyPlannerTodoRepository.findTop1ByMentee_UserIdAndPlanDateOrderByCreatedAtDesc(menteeId, targetDate)
+                    .ifPresent(planner -> {
+                        planner.getTasks().forEach(task -> {
+                            allTasks.add(MenteeTaskResponse.builder()
+                                    .menteeId(menteeId)
+                                    .menteeName(menteeName)
+                                    .plannerId(planner.getId())
+                                    .taskId(task.getId())
+                                    .taskContent(task.getContent())
+                                    .isCompleted(task.isCompleted())
+                                    .build());
+                        });
+                    });
+        }
+
+        return allTasks;
     }
 
     // 헬퍼 메서드: 특정 멘티가 특정 날짜에 과제를 다 했는지 확인
