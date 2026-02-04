@@ -29,7 +29,7 @@ public class MatchingController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd")LocalDate date
     ) {
         if(userDetails.getRole() != Role.MENTOR) {
-            throw new IllegalArgumentException("멘토만 접근할 수 있습니다.");
+            return ApiResponse.onFailure("멘토만 접근할 수 있습니다.");
         }
 
         Long currentUserId = userDetails.getUserId();
