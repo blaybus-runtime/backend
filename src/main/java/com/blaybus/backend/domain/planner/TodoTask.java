@@ -7,6 +7,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import com.blaybus.backend.domain.content.Feedback;
+
 
 @Entity
 @Getter
