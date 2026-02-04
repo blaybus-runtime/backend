@@ -42,12 +42,20 @@ public class TodoTask {
     @Column(nullable = false)
     private TaskType taskType;
 
+    @Column(nullable = false)
+    private String title;
+
+    @Column(nullable = false)
+    private String goal;
+
     @Builder
-    public TodoTask(StudyPlanner planner, Worksheet worksheet, String content, String subject, boolean isCompleted, Integer priority, TaskType taskType) {
+    public TodoTask(StudyPlanner planner, Worksheet worksheet, String content, String subject, String title, String goal, boolean isCompleted, Integer priority, TaskType taskType) {
         this.planner = planner;
         this.worksheet = worksheet;
         this.content = content;
         this.subject = subject;
+        this.title = title;
+        this.goal = goal;
         this.isCompleted = isCompleted;
         this.priority = priority;
         this.taskType = taskType;

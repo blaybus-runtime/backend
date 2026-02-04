@@ -22,8 +22,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/study/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll() // ✅ 로그인은 열어두기
+                        .requestMatchers("/api/v1/mentor/**").permitAll()
+                        .requestMatchers("/api/v1/mentor/tasks/**").permitAll()
+                        .requestMatchers("/api/v1/study/**").permitAll()
                         .requestMatchers("/api/v1/columns/**").permitAll() // ✅ 칼럼 조회는 열어두기
                         .requestMatchers("/api/v1/study/**").permitAll() // ✅ study 관련 기능도 열어두기
                         .requestMatchers("/api/v1/mentors/**").hasRole("MENTOR")
