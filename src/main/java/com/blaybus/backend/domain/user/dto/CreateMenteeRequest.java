@@ -1,17 +1,21 @@
 package com.blaybus.backend.domain.user.dto;
 
 import lombok.Getter;
+import java.util.List;
 
 @Getter
 public class CreateMenteeRequest {
-    private String username;
+
     private String name;
     private MenteeProfileDto menteeProfile;
 
     @Getter
     public static class MenteeProfileDto {
-        private String schoolName;
+        private String phoneNumber;
+        private String email;
+        private String highSchool;
         private Integer grade;
-        private String targetUniv;
+        private List<String> Subjects; // ["국어","수학","영어"]
+        private String messageToMentor;
     }
 }

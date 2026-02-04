@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -20,18 +23,34 @@ public class MenteeProfile {
     private User user;
 
     @Column(nullable = false)
-    private String schoolName;
+    private String phoneNumber;
 
     @Column(nullable = false)
+    private String email;
+
+    @Column(nullable = false)
+    private String highSchool;
+
+    @Column(nullable=false)
     private Integer grade;
 
-    private String targetUniv;
+    @ElementCollection
+    @CollectionTable(name = "mentee_subjects", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "subject")
+    private List<String> Subjects = new ArrayList<>();
+
+    @Column(columnDefinition = "TEXT")
+    private String messageToMentor;
 
     @Builder
-    public MenteeProfile(User user, String schoolName, Integer grade, String targetUniv) {
+    public MenteeProfile(User user, String phoneNumber, String email, String highSchool,
+                         Integer grade, List<String> Subjects, String messageToMentor) {
         this.user = user;
-        this.schoolName = schoolName;
+        this.phoneNumber = phoneNumber;
+        this.email = email;
+        this.highSchool = highSchool;
         this.grade = grade;
-        this.targetUniv = targetUniv;
+        if (Subjects != null) this.Subjects = Subjects;
+        this.messageToMentor = messageToMentor;
     }
 }
