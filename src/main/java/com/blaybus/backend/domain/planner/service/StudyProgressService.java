@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.*; // Map, HashMap, LinkedHashMap 사용을 위해 import
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,54 +20,64 @@ public class StudyProgressService {
     private final DailyStudyPlannerTodoRepository dailyTodoRepository;
 
     /*
-    /api/v1/study/progress/mentorId=1&startDate=2026-02-01&endDate=2026-02-04 담당하는 메소드입니다.
+    /api/v1/study/progress 담당하는 메소드입니다.
+    - 김동수 -
      */
-    public Map<String, Object> getProgress(Long menteeId, LocalDate startDate, LocalDate endDate) {
+    public StudyProgressResponse getProgress(Long menteeId, LocalDate startDate, LocalDate endDate) {
 
-        // 데이터 조회 및 계산 로직 (기존과 동일)
+        // menteeId와 일치하는 멘티의 플래너 중 startDate와 endDate 사이의 플래너만 가져옴
         List<StudyPlanner> planners = dailyTodoRepository.findAllByMentee_UserIdAndPlanDateBetween(menteeId, startDate, endDate);
 
+        // 날짜-플래너 조회용 map 하나 생성
         Map<LocalDate, StudyPlanner> plannerMap = planners.stream()
                 .collect(Collectors.toMap(StudyPlanner::getPlanDate, p -> p));
 
-        List<DailyStat> dailyStats = new ArrayList<>();
-        int totalTaskCount = 0;
-        int completedTaskCount = 0;
-        Map<String, int[]> subjectStatMap = new HashMap<>();
+        List<DailyStat> dailyStats = new ArrayList<>(); // 날짜 별 통계치를 저장할 리스트
+        int totalTaskCount = 0; // 총 todo 개수를 저장할 변수
+        int completedTaskCount = 0; // 완료한 todo 개수를 저장할 변수
+        Map<String, int[]> subjectStatMap = new HashMap<>(); // 과목 별 통계치를 저장할 용도의 map (0번째는 개수 카운팅, 1번째는 완료 개수 카운팅)
+
 
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            // 현재 날짜에 플래너가 있는 경우
             if (plannerMap.containsKey(date)) {
                 StudyPlanner planner = plannerMap.get(date);
                 List<TodoTask> tasks = planner.getTasks();
 
-                int dailyTotal = tasks.size();
-                int dailyDone = 0;
+                int dailyTotal = tasks.size(); // 현재 날짜의 todo 개수
+                int dailyDone = 0; // 현재 날짜의 todo 중 완료된 todo 개수
 
                 for (TodoTask task : tasks) {
                     String subject = task.getSubject();
-                    subjectStatMap.putIfAbsent(subject, new int[]{0, 0});
-                    subjectStatMap.get(subject)[0]++;
+                    subjectStatMap.putIfAbsent(subject, new int[]{0, 0}); // 처음으로 map에 추가하는 거면 초기화
+                    subjectStatMap.get(subject)[0]++; // 개수 카운팅
 
+                    // 완료한 todo 개수 카운팅
                     if (task.isCompleted()) {
                         dailyDone++;
                         subjectStatMap.get(subject)[1]++;
                     }
                 }
+
+                // 전체 통계 업데이트
                 totalTaskCount += dailyTotal;
                 completedTaskCount += dailyDone;
 
+                // 현재 날짜의 진척도 계산
                 int dailyRate = (dailyTotal == 0) ? 0 : (dailyDone * 100 / dailyTotal);
                 dailyStats.add(createDailyStat(date, true, dailyRate));
             } else {
+                // 현재 날짜의 플래너가 없는 경우 빈껍데기 데이터 추가
                 dailyStats.add(createDailyStat(date, false, 0));
             }
         }
 
+        // startDate ~ endDate 기간 동안의 전체 진척도 계산
         int totalProgressRate = (totalTaskCount == 0) ? 0 : (completedTaskCount * 100 / totalTaskCount);
         List<SubjectStat> subjectStats = createSubjectStats(subjectStatMap);
 
         // DTO 생성
-        StudyProgressResponse data = StudyProgressResponse.builder()
+        return StudyProgressResponse.builder()
                 .menteeId(menteeId)
                 .period(Period.builder()
                         .startDate(startDate)
@@ -79,17 +89,10 @@ public class StudyProgressService {
                         .build())
                 .dailyStats(dailyStats)
                 .build();
-
-        // 순서를 보장하기 위해 LinkedHashMap 사용
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("status", 200);
-        response.put("message", "Success");
-        response.put("data", data);
-
-        return response;
     }
 
-    // --- 헬퍼 함수 모음입니다 ---
+    // --------------------------- 여기부터 헬퍼 함수 모음입니다 ---------------------------
+    // DailyStat DTO 생성 헬퍼 함수
     private DailyStat createDailyStat(LocalDate date, boolean hasTodo, int rate) {
         return DailyStat.builder()
                 .date(date)
@@ -98,6 +101,7 @@ public class StudyProgressService {
                 .build();
     }
 
+    // SubjectStat DTO 생성 헬퍼 함수
     private List<SubjectStat> createSubjectStats(Map<String, int[]> map) {
         List<SubjectStat> list = new ArrayList<>();
         for (Map.Entry<String, int[]> entry : map.entrySet()) {
