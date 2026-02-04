@@ -20,13 +20,13 @@ public class ApiResponse<T> {
         return new ApiResponse<T>(200, "Success", data);
     }
 
-    // 성공 응답 (data 없는 경우) - 201
+    // 성공 응답 (data 없는 경우) - 200
     public static <T> ApiResponse<T> onSuccess() {
         return new ApiResponse<T>(200, "Success", null);
     }
 
     // 실패 응답
     public static <T> ApiResponse<T> onFailure(String message) {
-        return new ApiResponse<T>(500, message, null);
+        return new ApiResponse<T>(400, message, null);
     }
 }
