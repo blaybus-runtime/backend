@@ -65,4 +65,11 @@ public class TodoTask {
         this.priority = priority;
         this.taskType = taskType;
     }
+
+    public void updateCompleted(boolean completed) {
+        this.isCompleted = completed;
+    }
+
 }
+
+
