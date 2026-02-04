@@ -38,7 +38,7 @@ public class MatchingService {
                             .name(matching.getMentee().getUser().getName())
                             .profileImageUrl(matching.getMentee().getUser().getProfileImage())
                             .school(matching.getMentee().getSchoolName())
-                            .grade(matching.getMentee().getGrade())
+                            .grade(String.valueOf(matching.getMentee().getGrade()))
                             .isDailyTodoCompleted(isCompleted)
                             .build();
                 })

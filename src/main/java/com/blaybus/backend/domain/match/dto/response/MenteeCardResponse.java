@@ -10,6 +10,6 @@ public class MenteeCardResponse {
     private String name;
     private String profileImageUrl;
     private String school;
-    private Integer grade;
+    private String grade;
     private boolean isDailyTodoCompleted;
 }
