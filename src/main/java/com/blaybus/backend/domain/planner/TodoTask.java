@@ -1,5 +1,6 @@
 package com.blaybus.backend.domain.planner;
 
+import com.blaybus.backend.domain.content.Feedback;
 import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.global.enum_type.TaskType;
 import jakarta.persistence.*;
@@ -41,6 +42,9 @@ public class TodoTask {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TaskType taskType;
+
+    @OneToOne(mappedBy = "task", fetch = FetchType.LAZY)
+    private Feedback feedback;
 
     @Builder
     public TodoTask(StudyPlanner planner, Worksheet worksheet, String content, String subject, boolean isCompleted, Integer priority, TaskType taskType) {
