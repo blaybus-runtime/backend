@@ -9,6 +9,5 @@ public class MenteeCardResponse {
     private Long menteeId;
     private String name;
     private String profileImageUrl;
-    private String school;
     private boolean isDailyTodoCompleted;
 }
