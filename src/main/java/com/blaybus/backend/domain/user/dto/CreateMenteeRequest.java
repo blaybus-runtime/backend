@@ -15,7 +15,7 @@ public class CreateMenteeRequest {
         private String email;
         private String highSchool;
         private Integer grade;
-        private List<String> Subjects; // ["국어","수학","영어"]
+        private List<String> subjects; // ["국어","수학","영어"]
         private String messageToMentor;
     }
 }
