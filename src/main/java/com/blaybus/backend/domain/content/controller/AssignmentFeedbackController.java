@@ -23,6 +23,15 @@ public class AssignmentFeedbackController {
             @Valid @RequestBody FeedbackRequest.Create request
     ) {
         FeedbackResponse.Create result = feedbackService.createMentorFeedback(assignmentId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.onSuccess(result));
+        return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
+
+    @GetMapping("/{assignmentId}/feedback")
+    public ResponseEntity<ApiResponse<FeedbackResponse.Create>> get(
+            @PathVariable Long assignmentId
+    ) {
+        FeedbackResponse.Create result = feedbackService.getFeedback(assignmentId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(result));
+    }
+
 }
