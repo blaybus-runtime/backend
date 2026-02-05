@@ -9,5 +9,5 @@ public class MenteeCardResponse {
     private Long menteeId;
     private String name;
     private String profileImageUrl;
-    private boolean isDailyTodoCompleted;
+    private Integer unwrittenFeedbackCount;
 }
