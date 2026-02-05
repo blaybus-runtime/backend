@@ -8,6 +8,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import com.blaybus.backend.domain.content.Feedback;
+import org.springframework.scheduling.config.Task;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 @Entity
@@ -52,6 +56,9 @@ public class TodoTask {
 
     @OneToOne(mappedBy = "task", fetch = FetchType.LAZY)
     private Feedback feedback;
+
+    @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
+    private List<Submission> submissions = new ArrayList<>();
 
     @Builder
     public TodoTask(StudyPlanner planner, Worksheet worksheet, String content, String subject, String title, String goal, boolean isCompleted, Integer priority, TaskType taskType) {
