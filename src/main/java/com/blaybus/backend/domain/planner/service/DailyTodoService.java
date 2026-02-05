@@ -88,6 +88,7 @@ public class DailyTodoService {
                 .build();
     }
 
+    @Transactional
     public MenteeTodoBatchResponse createMenteeTodoBatch(MenteeTodoBatchRequest request) {
 
         // 1) 토큰에서 로그인 유저 확인
@@ -164,8 +165,12 @@ public class DailyTodoService {
         // ✅ worksheetId(optional) 처리: 있으면 참조 프록시 가져오기 (DB hit 최소화)
         Worksheet worksheetRef = null;
         if (req.getWorksheetId() != null) {
-            worksheetRef = em.getReference(Worksheet.class, req.getWorksheetId());
+            worksheetRef = em.find(Worksheet.class, req.getWorksheetId());
+            if (worksheetRef == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "유효하지 않은 worksheetId 입니다.");
+            }
         }
+
 
         // ✅ weekdays(optional) 처리: 있으면 해당 요일에만 생성
         Set<DayOfWeek> selectedDays = parseWeekdays(req.getWeekdays());
