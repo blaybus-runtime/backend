@@ -1,5 +1,6 @@
 package com.blaybus.backend.domain.planner.service;
 
+import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.domain.planner.StudyPlanner;
 import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.dto.request.MentorTodoBatchRequest;
@@ -65,7 +66,7 @@ public class DailyTodoService {
                 .build();
     }
 
-    @Transactional // ✅ write 트랜잭션
+    @Transactional // write 트랜잭션
     public MentorTodoBatchResponse createMentorTodoBatch(Long mentorId, MentorTodoBatchRequest req) {
 
         if (req.getStartDate().isAfter(req.getEndDate())) {
@@ -77,6 +78,12 @@ public class DailyTodoService {
         MenteeProfile mentee = em.find(MenteeProfile.class, menteeId);
         if (mentee == null) {
             throw new IllegalArgumentException("유효하지 않은 menteeId 입니다.");
+        }
+
+        // ✅ worksheetId(optional) 처리: 있으면 참조 프록시 가져오기 (DB hit 최소화)
+        Worksheet worksheetRef = null;
+        if (req.getWorksheetId() != null) {
+            worksheetRef = em.getReference(Worksheet.class, req.getWorksheetId());
         }
 
         List<StudyPlanner> existingPlanners =
@@ -108,15 +115,15 @@ public class DailyTodoService {
                 plannerMap.put(d, planner);
             }
 
-            // ✅ SQL 에러 해결: title과 goal 필드를 모두 추가했습니다.
+            // ✅ worksheetRef가 있으면 각 TodoTask에 동일하게 세팅
             TodoTask saved = todoRepository.save(
                     TodoTask.builder()
                             .planner(planner)
-                            .worksheet(null)
+                            .worksheet(worksheetRef) // ⭐ 핵심 변경
                             .content(req.getTitle() + " | " + req.getGoal())
                             .subject(req.getSubject())
-                            .title(req.getTitle()) // 👈 추가된 부분
-                            .goal(req.getGoal())   // 👈 추가된 부분
+                            .title(req.getTitle())
+                            .goal(req.getGoal())
                             .isCompleted(false)
                             .priority(1)
                             .taskType(TaskType.ASSIGNMENT)
