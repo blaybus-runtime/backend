@@ -30,10 +30,8 @@ public class WorksheetController {
     ) {
         // TODO(해커톤): 로그인/인가 붙기 전까지는 임시 mentorId 사용
         // 이후 Security 연동하면 토큰에서 mentorId 추출로 변경
-        Long mentorId = 2L;
-
         WorksheetUploadResponseDto data =
-                worksheetService.uploadWorksheet(file, title, subject, materialType, mentorId);
+                worksheetService.uploadWorksheet(file, title, subject, materialType);
 
         return ApiResponse.onSuccess(data);
     }
