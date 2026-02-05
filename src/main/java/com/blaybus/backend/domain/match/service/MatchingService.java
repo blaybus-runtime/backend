@@ -32,14 +32,14 @@ public class MatchingService {
                 .map(matching -> {
                     Long menteeId = matching.getMentee().getUserId();
 
-                    // 해당 날짜(targetDate)의 과제 완료 여부 체크
-                    boolean isCompleted = checkDailyCompletion(menteeId, targetDate);
+                    // 해당 날짜의 미완료 피드백 개수 계산
+                    int feedbackCount = countUnwrittenFeedbacks(menteeId, targetDate);
 
                     return MenteeCardResponse.builder()
                             .menteeId(menteeId)
                             .name(matching.getMentee().getUser().getName())
                             .profileImageUrl(matching.getMentee().getUser().getProfileImage())
-                            .isDailyTodoCompleted(isCompleted)
+                            .unwrittenFeedbackCount(feedbackCount)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -74,13 +74,11 @@ public class MatchingService {
     }
 
     // 헬퍼 메서드: 특정 멘티가 특정 날짜에 과제를 다 했는지 확인
-    private boolean checkDailyCompletion(Long menteeId, LocalDate date) {
+    private int countUnwrittenFeedbacks(Long menteeId, LocalDate date) {
         return dailyStudyPlannerTodoRepository.findTop1ByMentee_UserIdAndPlanDateOrderByCreatedAtDesc(menteeId, date)
-                .map(planner -> {
-                    boolean hasTasks = !planner.getTasks().isEmpty();
-                    boolean allFinished = planner.getTasks().stream().allMatch(task -> task.isCompleted());
-                    return hasTasks && allFinished;
-                })
-                .orElse(false); // 플래너가 없으면 미완료(false) 처리
+                .map(planner -> (int) planner.getTasks().stream()
+                        .filter(task -> task.isCompleted() && task.getFeedback() == null)
+                        .count())
+                .orElse(0); // 플래너가 없으면 카운트 0
     }
 }
