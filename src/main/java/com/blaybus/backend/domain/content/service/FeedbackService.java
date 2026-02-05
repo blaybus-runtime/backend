@@ -77,4 +77,29 @@ public class FeedbackService {
                 saved.getCreatedAt()
         );
     }
+
+    @Transactional(readOnly = true)
+    public FeedbackResponse.Create getFeedback(Long assignmentId) {
+
+        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "피드백이 없습니다."));
+
+        // mentorName/profileImage는 User에서 가져오기
+        User mentorUser = feedback.getMentor().getUser();
+
+        FeedbackResponse.MentorInfo mentorInfo = new FeedbackResponse.MentorInfo(
+                feedback.getMentor().getUserId(),
+                mentorUser.getName(),
+                mentorUser.getProfileImage()
+        );
+
+        return new FeedbackResponse.Create(
+                feedback.getId(),
+                assignmentId,
+                mentorInfo,
+                feedback.getContent(),
+                feedback.getCreatedAt()
+        );
+    }
+
 }
