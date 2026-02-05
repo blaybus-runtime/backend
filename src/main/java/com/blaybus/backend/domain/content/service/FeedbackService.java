@@ -1,8 +1,8 @@
 package com.blaybus.backend.domain.content.service;
 
 import com.blaybus.backend.domain.content.Feedback;
-import com.blaybus.backend.domain.content.dto.FeedbackRequest;
-import com.blaybus.backend.domain.content.dto.FeedbackResponse;
+import com.blaybus.backend.domain.content.dto.request.FeedbackRequest;
+import com.blaybus.backend.domain.content.dto.response.FeedbackResponse;
 import com.blaybus.backend.domain.content.repository.FeedbackRepository;
 import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
