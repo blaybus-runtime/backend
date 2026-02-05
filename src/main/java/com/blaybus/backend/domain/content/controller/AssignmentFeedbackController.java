@@ -17,6 +17,7 @@ public class AssignmentFeedbackController {
 
     private final FeedbackService feedbackService;
 
+    //피드백 작성
     @PostMapping("/{assignmentId}/feedback")
     public ResponseEntity<ApiResponse<FeedbackResponse.Create>> create(
             @PathVariable Long assignmentId,
@@ -26,6 +27,7 @@ public class AssignmentFeedbackController {
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 
+    //피드백 조회
     @GetMapping("/{assignmentId}/feedback")
     public ResponseEntity<ApiResponse<FeedbackResponse.Create>> get(
             @PathVariable Long assignmentId
@@ -33,5 +35,18 @@ public class AssignmentFeedbackController {
         FeedbackResponse.Create result = feedbackService.getFeedback(assignmentId);
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
+
+    //피드백 수정
+    @PutMapping("/{assignmentId}/feedback")
+    public ResponseEntity<ApiResponse<FeedbackResponse.Create>> update(
+            @PathVariable Long assignmentId,
+            @Valid @RequestBody FeedbackRequest.Create request
+    ) {
+        FeedbackResponse.Create result =
+                feedbackService.updateMentorFeedback(assignmentId, request);
+
+        return ResponseEntity.ok(ApiResponse.onSuccess(result));
+    }
+
 
 }

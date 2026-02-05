@@ -28,6 +28,7 @@ public class FeedbackService {
     private final UserRepository userRepository;
     private final MentorProfileRepository mentorProfileRepository;
 
+    //피드백 작성
     @Transactional
     public FeedbackResponse.Create createMentorFeedback(Long assignmentId, FeedbackRequest.Create request) {
 
@@ -78,6 +79,7 @@ public class FeedbackService {
         );
     }
 
+    //피드백 조회
     @Transactional(readOnly = true)
     public FeedbackResponse.Create getFeedback(Long assignmentId) {
 
@@ -89,6 +91,59 @@ public class FeedbackService {
 
         FeedbackResponse.MentorInfo mentorInfo = new FeedbackResponse.MentorInfo(
                 feedback.getMentor().getUserId(),
+                mentorUser.getName(),
+                mentorUser.getProfileImage()
+        );
+
+        return new FeedbackResponse.Create(
+                feedback.getId(),
+                assignmentId,
+                mentorInfo,
+                feedback.getContent(),
+                feedback.getCreatedAt()
+        );
+    }
+
+    //피드백 수정
+    @Transactional
+    public FeedbackResponse.Create updateMentorFeedback(
+            Long assignmentId,
+            FeedbackRequest.Create request
+    ) {
+        // 1) 로그인 유저 확인
+        String username = SecurityUtils.getCurrentUsername();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."
+                ));
+
+        if (user.getRole() != Role.MENTOR) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "멘토만 피드백을 수정할 수 있습니다."
+            );
+        }
+
+        // 2) 기존 피드백 조회
+        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "수정할 피드백이 없습니다."
+                ));
+
+        // 3) 본인이 작성한 피드백인지 확인
+        if (!feedback.getMentor().getUserId().equals(user.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "본인이 작성한 피드백만 수정할 수 있습니다."
+            );
+        }
+
+        // 4) 수정
+        feedback.updateContent(request.content());
+        // save 안 해도 JPA dirty checking으로 반영됨
+
+        // 5) 응답 DTO
+        User mentorUser = feedback.getMentor().getUser();
+        FeedbackResponse.MentorInfo mentorInfo = new FeedbackResponse.MentorInfo(
+                mentorUser.getId(),
                 mentorUser.getName(),
                 mentorUser.getProfileImage()
         );
