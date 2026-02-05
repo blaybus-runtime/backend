@@ -1,10 +1,14 @@
 package com.blaybus.backend.domain.user.service;
 
+import com.blaybus.backend.domain.match.Matching;
+import com.blaybus.backend.domain.match.repository.MatchingRepository;
 import com.blaybus.backend.domain.user.MenteeProfile;
+import com.blaybus.backend.domain.user.MentorProfile;
 import com.blaybus.backend.domain.user.User;
 import com.blaybus.backend.domain.user.dto.CreateMenteeRequest;
 import com.blaybus.backend.domain.user.dto.CreateMenteeResponse;
 import com.blaybus.backend.domain.user.repository.MenteeProfileRepository;
+import com.blaybus.backend.domain.user.repository.MentorProfileRepository;
 import com.blaybus.backend.domain.user.repository.UserRepository;
 import com.blaybus.backend.global.enum_type.Role;
 import com.blaybus.backend.global.util.PasswordGenerator;
@@ -20,6 +24,8 @@ public class MentorMenteeService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final MenteeProfileRepository menteeProfileRepository;
+    private final MentorProfileRepository mentorProfileRepository;
+    private final MatchingRepository matchingRepository;
 
     @Transactional
     public CreateMenteeResponse createMentee(Long mentorId, CreateMenteeRequest request) {
@@ -61,7 +67,19 @@ public class MentorMenteeService {
 
         menteeProfileRepository.save(menteeProfile);
 
-        // 5) 응답 DTO 구성
+        // 5) 멘토-멘티 매칭 생성
+        MentorProfile mentorProfile = mentorProfileRepository.findById(mentorId)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 멘토 ID입니다."));
+
+        Matching matching = Matching.builder()
+                .mentor(mentorProfile)
+                .mentee(menteeProfile)
+                .subject(p.getSubjects() != null && !p.getSubjects().isEmpty()
+                        ? p.getSubjects().get(0) : "미정")
+                .build();
+        matchingRepository.save(matching);
+
+        // 6) 응답 DTO 구성
         return CreateMenteeResponse.builder()
                 .user(CreateMenteeResponse.UserDto.builder()
                         .userId(mentee.getId())

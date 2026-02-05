@@ -19,6 +19,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
+                .cors(cors -> {})  // WebConfig의 CORS 설정을 Security에도 적용
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -28,8 +29,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/columns/**").permitAll() // ✅ 칼럼 조회는 열어두기
                         .requestMatchers("/api/v1/study/**").permitAll() // ✅ study 관련 기능도 열어두기
                         .requestMatchers("/api/v1/matchings/**").permitAll()
+                        .requestMatchers("/api/v1/mentors/**").permitAll() // ✅ 멘티 생성 등
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers("/api/v1/mentors/**").hasRole("MENTOR")
                         .requestMatchers("/api/v1/mentees/**").hasRole("MENTEE")
                         .anyRequest().authenticated()
                 )
