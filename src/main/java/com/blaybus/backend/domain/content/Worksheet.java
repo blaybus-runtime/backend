@@ -1,5 +1,6 @@
 package com.blaybus.backend.domain.content;
 
+import com.blaybus.backend.domain.user.MenteeProfile;
 import com.blaybus.backend.domain.user.MentorProfile;
 import com.blaybus.backend.global.entity.BaseTimeEntity;
 import com.blaybus.backend.global.enum_type.MaterialType;
@@ -22,6 +23,11 @@ public class Worksheet extends BaseTimeEntity {
     @JoinColumn(name = "mentor_id")
     private MentorProfile mentor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mentee_id")
+    private MenteeProfile mentee;
+
+
     @Column(nullable = false)
     private String title;
 
@@ -35,8 +41,9 @@ public class Worksheet extends BaseTimeEntity {
     private String fileUrl;
 
     @Builder
-    public Worksheet(MentorProfile mentor, String title, String subject, MaterialType materialType, String fileUrl) {
+    public Worksheet(MentorProfile mentor, MenteeProfile mentee, String title, String subject, MaterialType materialType, String fileUrl) {
         this.mentor = mentor;
+        this.mentee = mentee;
         this.title = title;
         this.subject = subject;
         this.materialType = materialType;
