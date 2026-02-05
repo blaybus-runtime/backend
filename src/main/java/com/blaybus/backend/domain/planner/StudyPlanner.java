@@ -42,4 +42,11 @@ public class StudyPlanner extends BaseTimeEntity {
         this.studyTime = studyTime;
         this.dailyComment = dailyComment;
     }
+
+    public void addStudyTime(int minutes) {
+        if (this.studyTime == null) {
+            this.studyTime = 0;
+        }
+        this.studyTime += minutes;
+    }
 }
