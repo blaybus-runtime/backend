@@ -26,7 +26,8 @@ public class CreateMenteeResponse {
         private String email;
         private String highSchool;
         private Integer grade;
-        private List<String> Subjects;
+        private String targetUniv;
+        private List<String> subjects;
         private String messageToMentor;
     }
 }

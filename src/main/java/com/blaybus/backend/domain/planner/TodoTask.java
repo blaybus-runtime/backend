@@ -1,6 +1,5 @@
 package com.blaybus.backend.domain.planner;
 
-import com.blaybus.backend.domain.content.Feedback;
 import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.global.enum_type.TaskType;
 import jakarta.persistence.*;
@@ -8,6 +7,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import com.blaybus.backend.domain.content.Feedback;
+
 
 @Entity
 @Getter
@@ -43,17 +44,32 @@ public class TodoTask {
     @Column(nullable = false)
     private TaskType taskType;
 
+    @Column(nullable = false)
+    private String title;
+
+    @Column(nullable = false)
+    private String goal;
+
     @OneToOne(mappedBy = "task", fetch = FetchType.LAZY)
     private Feedback feedback;
 
     @Builder
-    public TodoTask(StudyPlanner planner, Worksheet worksheet, String content, String subject, boolean isCompleted, Integer priority, TaskType taskType) {
+    public TodoTask(StudyPlanner planner, Worksheet worksheet, String content, String subject, String title, String goal, boolean isCompleted, Integer priority, TaskType taskType) {
         this.planner = planner;
         this.worksheet = worksheet;
         this.content = content;
         this.subject = subject;
+        this.title = title;
+        this.goal = goal;
         this.isCompleted = isCompleted;
         this.priority = priority;
         this.taskType = taskType;
     }
+
+    public void updateCompleted(boolean completed) {
+        this.isCompleted = completed;
+    }
+
 }
+
+

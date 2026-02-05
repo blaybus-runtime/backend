@@ -31,26 +31,43 @@ public class MenteeProfile {
     @Column(nullable = false)
     private String highSchool;
 
+    @Column(name = "target_univ")
+    private String targetUniv;
+
     @Column(nullable=false)
     private Integer grade;
 
     @ElementCollection
     @CollectionTable(name = "mentee_subjects", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "subject")
-    private List<String> Subjects = new ArrayList<>();
+    private List<String> subjects = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
     private String messageToMentor;
 
     @Builder
     public MenteeProfile(User user, String phoneNumber, String email, String highSchool,
-                         Integer grade, List<String> Subjects, String messageToMentor) {
+                         Integer grade, String targetUniv, List<String> subjects, String messageToMentor) {
         this.user = user;
         this.phoneNumber = phoneNumber;
         this.email = email;
         this.highSchool = highSchool;
+        this.targetUniv = targetUniv;
         this.grade = grade;
-        if (Subjects != null) this.Subjects = Subjects;
+        if (subjects != null) this.subjects = subjects;
         this.messageToMentor = messageToMentor;
     }
+
+    public void updatePhoneNumber(String v){ this.phoneNumber = v; }
+    public void updateEmail(String v){ this.email = v; }
+    public void updateHighSchool(String v){ this.highSchool = v; }
+    public void updateGrade(Integer v){ this.grade = v; }
+    public void updateTargetUniv(String v){ this.targetUniv = v; }
+    public void updateMessageToMentor(String v){ this.messageToMentor = v; }
+
+    public void replaceSubjects(List<String> newSubjects){
+        this.subjects.clear();
+        if (newSubjects != null) this.subjects.addAll(newSubjects);
+    }
+
 }

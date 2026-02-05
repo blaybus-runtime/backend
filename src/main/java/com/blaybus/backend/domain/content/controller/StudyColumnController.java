@@ -33,9 +33,6 @@ public class StudyColumnController {
         List<StudyColumnSummaryResponse> columns = studyColumnService.getRecentColumns(limit);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("status", 200);
-        response.put("message", "Success");
-        response.put("data", columns);
 
         return ResponseEntity.ok(response);
     }

@@ -41,4 +41,11 @@ public class MentorProfile {
         this.status = status;
         this.subject = subject;
     }
+
+    public void updateMajor(String v){ this.major = v; }
+    public void updateStudentIdCard(String v){ this.studentIdCard = v; }
+    public void updateBio(String v){ this.bio = v; }
+    public void updateStatus(boolean v){ this.status = v; }
+    public void updateSubject(String v){ this.subject = v; }
+
 }
