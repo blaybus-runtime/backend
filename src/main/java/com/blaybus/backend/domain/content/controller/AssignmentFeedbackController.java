@@ -47,5 +47,13 @@ public class AssignmentFeedbackController {
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 
+    //피드백 삭제
+    @DeleteMapping("/{assignmentId}/feedback")
+    public ResponseEntity<ApiResponse<Void>> deleteFeedback(
+            @PathVariable Long assignmentId
+    ) {
+        feedbackService.deleteMentorFeedback(assignmentId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(null));
+    }
 
 }

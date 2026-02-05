@@ -25,7 +25,7 @@ public class Feedback extends BaseTimeEntity {
     @JoinColumn(name = "mentor_id")
     private MentorProfile mentor;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @Builder
@@ -39,4 +39,10 @@ public class Feedback extends BaseTimeEntity {
     public void updateContent(String content) {
         this.content = content;
     }
+
+    //피드백 삭제 메서드 추가
+    public void clearContent() {
+        this.content = null;
+    }
+
 }
