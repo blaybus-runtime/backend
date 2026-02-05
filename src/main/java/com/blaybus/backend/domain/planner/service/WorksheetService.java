@@ -115,9 +115,11 @@ public class WorksheetService {
                 .subject(saved.getSubject())
                 .materialType(saved.getMaterialType().name())
                 .fileUrl(saved.getFileUrl())
-                .mentorId(user.getId())
+                .uploaderId(user.getId())
+                .uploaderRole(user.getRole().name())
                 .createdAt(saved.getCreatedAt())
                 .build();
+
     }
 
     private User getCurrentUserOrThrow() {
