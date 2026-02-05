@@ -50,18 +50,28 @@ public class FeedbackService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "과제를 찾을 수 없습니다."));
 
         // 4) 중복 작성 방지 (task당 1개)
-        if (feedbackRepository.existsByTask_Id(assignmentId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 피드백이 작성된 과제입니다.");
-        }
+        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId).orElse(null);
 
-        // 5) 저장
-        Feedback saved = feedbackRepository.save(
-                Feedback.builder()
-                        .task(task)
-                        .mentor(mentor)
-                        .content(request.content())
-                        .build()
-        );
+        if (feedback == null) {
+            // 처음 작성: INSERT
+            feedback = feedbackRepository.save(
+                    Feedback.builder()
+                            .task(task)
+                            .mentor(mentor)
+                            .content(request.content())
+                            .build()
+            );
+        } else {
+            // 원래 작성자만 재작성 가능하게
+            if (!feedback.getMentor().getUserId().equals(user.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인이 작성한 피드백만 다시 작성할 수 있습니다.");
+            }
+
+            if (feedback.getContent() != null) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 피드백이 작성된 과제입니다.");
+            }
+            feedback.updateContent(request.content());
+        }
 
         // 6) 응답 DTO
         FeedbackResponse.MentorInfo mentorInfo = new FeedbackResponse.MentorInfo(
@@ -71,11 +81,11 @@ public class FeedbackService {
         );
 
         return new FeedbackResponse.Create(
-                saved.getId(),
+                feedback.getId(),
                 assignmentId,
                 mentorInfo,
-                saved.getContent(),
-                saved.getCreatedAt()
+                feedback.getContent(),
+                feedback.getCreatedAt()
         );
     }
 
@@ -83,9 +93,10 @@ public class FeedbackService {
     @Transactional(readOnly = true)
     public FeedbackResponse.Create getFeedback(Long assignmentId) {
 
-        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "피드백이 없습니다."));
-
+        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId).orElse(null);
+        if (feedback == null || feedback.getContent() == null) {
+            return null; // data:null
+        }
         // mentorName/profileImage는 User에서 가져오기
         User mentorUser = feedback.getMentor().getUser();
 
@@ -129,6 +140,10 @@ public class FeedbackService {
                         HttpStatus.NOT_FOUND, "수정할 피드백이 없습니다."
                 ));
 
+        if (feedback.getContent() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "수정할 피드백이 없습니다.");
+        }
+
         // 3) 본인이 작성한 피드백인지 확인
         if (!feedback.getMentor().getUserId().equals(user.getId())) {
             throw new ResponseStatusException(
@@ -155,6 +170,41 @@ public class FeedbackService {
                 feedback.getContent(),
                 feedback.getCreatedAt()
         );
+    }
+
+    //피드백 삭제
+    @Transactional
+    public void deleteMentorFeedback(Long assignmentId) {
+
+        // 1) 로그인 유저
+        String username = SecurityUtils.getCurrentUsername();
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."
+                ));
+
+        if (user.getRole() != Role.MENTOR) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "멘토만 피드백을 삭제할 수 있습니다."
+            );
+        }
+
+        // 2) 피드백 조회
+        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "삭제할 피드백이 없습니다."
+                ));
+
+        // 3) 작성자 본인 확인
+        if (!feedback.getMentor().getUserId().equals(user.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "본인이 작성한 피드백만 삭제할 수 있습니다."
+            );
+        }
+
+        // 4) 삭제
+        feedback.clearContent();
     }
 
 }
