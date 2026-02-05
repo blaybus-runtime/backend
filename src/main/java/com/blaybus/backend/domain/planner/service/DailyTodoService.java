@@ -3,8 +3,10 @@ package com.blaybus.backend.domain.planner.service;
 import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.domain.planner.StudyPlanner;
 import com.blaybus.backend.domain.planner.TodoTask;
+import com.blaybus.backend.domain.planner.dto.request.MenteeTodoBatchRequest;
 import com.blaybus.backend.domain.planner.dto.request.MentorTodoBatchRequest;
 import com.blaybus.backend.domain.planner.dto.response.DailyTodoResponseDto;
+import com.blaybus.backend.domain.planner.dto.response.MenteeTodoBatchResponse;
 import com.blaybus.backend.domain.planner.dto.response.MentorTodoBatchResponse;
 import com.blaybus.backend.domain.planner.dto.response.MentorTodoResponse;
 import com.blaybus.backend.domain.planner.repository.DailyStudyPlannerTodoRepository;
@@ -26,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -82,6 +85,57 @@ public class DailyTodoService {
                 .menteeId(menteeId)
                 .date(targetDate)
                 .todos(todoDtos)
+                .build();
+    }
+
+    public MenteeTodoBatchResponse createMenteeTodoBatch(MenteeTodoBatchRequest request) {
+
+        // 1) 토큰에서 로그인 유저 확인
+        String username = SecurityUtils.getCurrentUsername();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."));
+
+        // 2) 멘티 권한 확인
+        if (user.getRole() != Role.MENTEE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "멘티 권한이 필요합니다.");
+        }
+
+        Long menteeId = user.getId();
+
+        // 3) 멘티 요청 → 멘토 배치 요청으로 변환 (menteeId만 토큰 기반)
+        MentorTodoBatchRequest converted = new MentorTodoBatchRequest();
+        converted.setMenteeId(menteeId);
+        converted.setSubject(request.getSubject());
+        converted.setGoal(request.getGoal());
+        converted.setTitle(request.getTitle());
+        converted.setStartDate(request.getStartDate());
+        converted.setEndDate(request.getEndDate());
+        converted.setWeekdays(request.getWeekdays());
+        converted.setWorksheetId(request.getWorksheetId());
+
+        // 4) 기존 멘토 배치 생성 로직 재사용
+        MentorTodoBatchResponse mentorResult = createMentorTodoBatch(converted);
+
+        // 5) MentorTodoBatchResponse → MenteeTodoBatchResponse로 매핑
+        // ⚠️ 아래 매핑은 MentorTodoBatchResponse 구조가 "menteeId/createdCount/tasks" 비슷하다는 전제.
+        // 만약 필드명이 다르면, 그 클래스 코드 보여주면 내가 정확히 맞춰줄게.
+        return MenteeTodoBatchResponse.builder()
+                .menteeId(menteeId)
+                .createdCount(mentorResult.getCreatedCount())
+                .tasks(
+                        mentorResult.getTasks().stream()
+                                .map(t -> MenteeTodoBatchResponse.MenteeTodoItem.builder()
+                                        .taskId(t.getTaskId())
+                                        .date(t.getDate())
+                                        .subject(t.getSubject())
+                                        .goal(t.getGoal())
+                                        .title(t.getTitle())
+                                        .status(t.getStatus())
+                                        .createdBy("MENTEE") // ✅ 멘티 생성이므로 강제
+                                        .build()
+                                )
+                                .collect(Collectors.toList())
+                )
                 .build();
     }
 
