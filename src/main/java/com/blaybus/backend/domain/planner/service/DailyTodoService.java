@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -86,6 +87,9 @@ public class DailyTodoService {
             worksheetRef = em.getReference(Worksheet.class, req.getWorksheetId());
         }
 
+        // ✅ weekdays(optional) 처리: 있으면 해당 요일에만 생성
+        Set<DayOfWeek> selectedDays = parseWeekdays(req.getWeekdays());
+
         List<StudyPlanner> existingPlanners =
                 studyPlannerRepository.findAllByMentee_UserIdAndPlanDateBetween(
                         menteeId, req.getStartDate(), req.getEndDate()
@@ -100,6 +104,12 @@ public class DailyTodoService {
 
         LocalDate d = req.getStartDate();
         while (!d.isAfter(req.getEndDate())) {
+
+            // ✅ 선택 요일이 있으면, 해당 요일만 생성
+            if (!selectedDays.isEmpty() && !selectedDays.contains(d.getDayOfWeek())) {
+                d = d.plusDays(1);
+                continue;
+            }
 
             StudyPlanner planner = plannerMap.get(d);
 
@@ -119,7 +129,7 @@ public class DailyTodoService {
             TodoTask saved = todoRepository.save(
                     TodoTask.builder()
                             .planner(planner)
-                            .worksheet(worksheetRef) // ⭐ 핵심 변경
+                            .worksheet(worksheetRef)
                             .content(req.getTitle() + " | " + req.getGoal())
                             .subject(req.getSubject())
                             .title(req.getTitle())
@@ -148,5 +158,43 @@ public class DailyTodoService {
                 .createdCount(created.size())
                 .tasks(created)
                 .build();
+    }
+
+    /**
+     * ✅ 프론트 요일 값이 한글(일~토)로 오든, 영문(SUN~SAT)로 오든 다 처리
+     * - weekdays가 null/empty면 "매일 생성"을 의미하도록 빈 Set 반환
+     */
+    private Set<DayOfWeek> parseWeekdays(List<String> weekdays) {
+        if (weekdays == null || weekdays.isEmpty()) return Collections.emptySet();
+
+        Set<DayOfWeek> result = new HashSet<>();
+        for (String w : weekdays) {
+            if (w == null) continue;
+            String s = w.trim().toUpperCase();
+
+            switch (s) {
+                // 한글 요일
+                case "일": result.add(DayOfWeek.SUNDAY); break;
+                case "월": result.add(DayOfWeek.MONDAY); break;
+                case "화": result.add(DayOfWeek.TUESDAY); break;
+                case "수": result.add(DayOfWeek.WEDNESDAY); break;
+                case "목": result.add(DayOfWeek.THURSDAY); break;
+                case "금": result.add(DayOfWeek.FRIDAY); break;
+                case "토": result.add(DayOfWeek.SATURDAY); break;
+
+                // 영문 요일 코드
+                case "SUN": result.add(DayOfWeek.SUNDAY); break;
+                case "MON": result.add(DayOfWeek.MONDAY); break;
+                case "TUE": result.add(DayOfWeek.TUESDAY); break;
+                case "WED": result.add(DayOfWeek.WEDNESDAY); break;
+                case "THU": result.add(DayOfWeek.THURSDAY); break;
+                case "FRI": result.add(DayOfWeek.FRIDAY); break;
+                case "SAT": result.add(DayOfWeek.SATURDAY); break;
+
+                default:
+                    throw new IllegalArgumentException("요일 값이 올바르지 않습니다: " + w);
+            }
+        }
+        return result;
     }
 }

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -35,5 +36,8 @@ public class MentorTodoBatchRequest {
     private LocalDate endDate;
 
     private Long worksheetId; // optional
+
+    private List<String> weekdays; // optional
+
 
 }
