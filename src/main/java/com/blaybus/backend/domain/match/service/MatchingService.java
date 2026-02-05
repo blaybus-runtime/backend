@@ -3,7 +3,6 @@ package com.blaybus.backend.domain.match.service;
 import com.blaybus.backend.domain.match.Matching;
 import com.blaybus.backend.domain.match.dto.response.MenteeCardResponse;
 import com.blaybus.backend.domain.match.dto.response.MenteeFeedbackResponse;
-import com.blaybus.backend.domain.match.dto.response.MenteeTaskResponse;
 import com.blaybus.backend.domain.match.repository.MatchingRepository;
 import com.blaybus.backend.domain.planner.Submission;
 import com.blaybus.backend.domain.planner.repository.DailyStudyPlannerTodoRepository;
@@ -26,6 +25,7 @@ public class MatchingService {
     private final MatchingRepository matchingRepository;
     private final DailyStudyPlannerTodoRepository dailyStudyPlannerTodoRepository;
 
+    // 멘토 홈 화면 - 좌측 멘티 카드 조회 api
     public List<MenteeCardResponse> getMyMentees(Long mentorId, LocalDate targetDate) {
 
         // 멘토와 매칭된 모든 멘티 목록 조회
@@ -49,7 +49,7 @@ public class MatchingService {
                 .collect(Collectors.toList());
     }
 
-    // 멘토 홈 우측 화면 - 미완료 피드백(Pending Feedbacks) 목록 조회
+    // 멘토 홈 우측 화면 - 미완료 피드백(Pending Feedbacks) 목록 조회 api
     public List<MenteeFeedbackResponse> getPendingFeedbacks(Long mentorId, LocalDate targetDate) {
 
         List<Matching> matchings = matchingRepository.findAllByMentorId(mentorId); // 일단 멘토 id에 해당하는 매칭을 모두 가져옴
