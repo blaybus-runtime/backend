@@ -1,6 +1,7 @@
 package com.blaybus.backend.domain.match.controller;
 
 import com.blaybus.backend.domain.match.dto.response.MenteeCardResponse;
+import com.blaybus.backend.domain.match.dto.response.MenteeFeedbackResponse;
 import com.blaybus.backend.domain.match.dto.response.MenteeTaskResponse;
 import com.blaybus.backend.domain.match.service.MatchingService;
 import com.blaybus.backend.global.dto.ApiResponse;
@@ -40,15 +41,18 @@ public class MatchingController {
     }
 
     @GetMapping("/daily-tasks")
-    public ApiResponse<List<MenteeTaskResponse>> getMyDailyTasks(
+    public ApiResponse<List<MenteeFeedbackResponse>> getPendingFeedbacks(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd")LocalDate date
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date
     ) {
         if(userDetails.getRole() != Role.MENTOR) {
             return ApiResponse.onFailure("멘토만 접근할 수 있습니다.");
         }
+
         Long currentUserId = userDetails.getUserId();
-        List<MenteeTaskResponse> response = matchingService.getMenteeDailyTasks(currentUserId, date);
+
+        List<MenteeFeedbackResponse> response = matchingService.getPendingFeedbacks(currentUserId, date);
+
         return ApiResponse.onSuccess(response);
     }
 }
