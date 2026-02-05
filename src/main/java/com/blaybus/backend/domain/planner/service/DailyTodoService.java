@@ -10,12 +10,18 @@ import com.blaybus.backend.domain.planner.dto.response.MentorTodoResponse;
 import com.blaybus.backend.domain.planner.repository.DailyStudyPlannerTodoRepository;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
 import com.blaybus.backend.domain.user.MenteeProfile;
+import com.blaybus.backend.domain.user.User;
+import com.blaybus.backend.domain.user.repository.UserRepository;
+import com.blaybus.backend.global.enum_type.Role;
 import com.blaybus.backend.global.enum_type.TaskType;
+import com.blaybus.backend.global.util.SecurityUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -28,13 +34,25 @@ public class DailyTodoService {
 
     private final DailyStudyPlannerTodoRepository studyPlannerRepository;
     private final TodoRepository todoRepository;
+    private final UserRepository userRepository;
 
     @PersistenceContext
     private EntityManager em;
 
-    public DailyTodoResponseDto getDaily(Long menteeId, LocalDate date) {
+    public DailyTodoResponseDto getDaily(LocalDate date) {
+
+
+        // 1. SecurityUtils를 통해 현재 로그인한 유저의 username을 가져옴
+        String username = SecurityUtils.getCurrentUsername();
+
+        // 2. 해당 username으로 유저 엔티티 조회
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."));
+
+        Long menteeId = user.getId(); // User의 ID를 사용
         LocalDate targetDate = (date != null) ? date : LocalDate.now();
 
+        // 3. 기존 로직 수행 (menteeId 기반 조회)
         Optional<StudyPlanner> plannerOpt =
                 studyPlannerRepository.findTop1ByMentee_UserIdAndPlanDateOrderByCreatedAtDesc(menteeId, targetDate);
 
@@ -68,17 +86,25 @@ public class DailyTodoService {
     }
 
     @Transactional // write 트랜잭션
-    public MentorTodoBatchResponse createMentorTodoBatch(Long mentorId, MentorTodoBatchRequest req) {
+    public MentorTodoBatchResponse createMentorTodoBatch( MentorTodoBatchRequest req) {
+
+        String username = SecurityUtils.getCurrentUsername();
+        User mentorUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."));
+
+        if (mentorUser.getRole() != Role.MENTOR) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "멘토만 과제를 생성할 수 있습니다.");
+        }
 
         if (req.getStartDate().isAfter(req.getEndDate())) {
-            throw new IllegalArgumentException("startDate는 endDate보다 늦을 수 없습니다.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시작 날짜는 종료 날짜보다 늦을 수 없습니다.");
         }
 
         Long menteeId = req.getMenteeId();
 
         MenteeProfile mentee = em.find(MenteeProfile.class, menteeId);
         if (mentee == null) {
-            throw new IllegalArgumentException("유효하지 않은 menteeId 입니다.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "유효하지 않은 멘티 프로필입니다.");
         }
 
         // ✅ worksheetId(optional) 처리: 있으면 참조 프록시 가져오기 (DB hit 최소화)
@@ -192,8 +218,7 @@ public class DailyTodoService {
                 case "SAT": result.add(DayOfWeek.SATURDAY); break;
 
                 default:
-                    throw new IllegalArgumentException("요일 값이 올바르지 않습니다: " + w);
-            }
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "올바르지 않은 요일 형식입니다: " + w);            }
         }
         return result;
     }

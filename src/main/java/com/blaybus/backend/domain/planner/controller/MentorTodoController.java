@@ -17,11 +17,10 @@ public class MentorTodoController {
     private final DailyTodoService dailyTodoService;
 
     @PostMapping("/batch")
-    public ResponseEntity<ApiResponse<MentorTodoBatchResponse>> createBatch(
-            @RequestParam Long mentorId,
-            @Valid @RequestBody MentorTodoBatchRequest request
+    public ResponseEntity<ApiResponse<MentorTodoBatchResponse>> createMentorTodo(
+            @RequestBody MentorTodoBatchRequest request
     ) {
-        MentorTodoBatchResponse result = dailyTodoService.createMentorTodoBatch(mentorId, request);
+        MentorTodoBatchResponse result = dailyTodoService.createMentorTodoBatch(request);
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 }
