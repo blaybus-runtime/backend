@@ -1,6 +1,6 @@
 package com.blaybus.backend.domain.content.controller;
 
-import com.blaybus.backend.domain.content.dto.StudyColumnSummaryResponse;
+import com.blaybus.backend.domain.content.dto.response.StudyColumnSummaryResponse;
 import com.blaybus.backend.domain.content.service.StudyColumnService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

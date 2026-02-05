@@ -1,4 +1,4 @@
-package com.blaybus.backend.domain.content.dto;
+package com.blaybus.backend.domain.content.dto.response;
 
 import java.time.LocalDateTime;
 

@@ -30,6 +30,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/study/**").permitAll() // ✅ study 관련 기능도 열어두기
                         .requestMatchers("/api/v1/matchings/**").permitAll()
                         .requestMatchers("/api/v1/mentors/**").permitAll() // ✅ 멘티 생성 등
+                        .requestMatchers("/api/v1/comments/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/v1/mentees/**").hasRole("MENTEE")
                         .anyRequest().authenticated()

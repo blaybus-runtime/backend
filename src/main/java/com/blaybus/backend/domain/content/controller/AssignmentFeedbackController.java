@@ -1,12 +1,11 @@
 package com.blaybus.backend.domain.content.controller;
 
-import com.blaybus.backend.domain.content.dto.FeedbackRequest;
-import com.blaybus.backend.domain.content.dto.FeedbackResponse;
+import com.blaybus.backend.domain.content.dto.request.FeedbackRequest;
+import com.blaybus.backend.domain.content.dto.response.FeedbackResponse;
 import com.blaybus.backend.domain.content.service.FeedbackService;
 import com.blaybus.backend.global.dto.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,5 +47,13 @@ public class AssignmentFeedbackController {
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 
+    //피드백 삭제
+    @DeleteMapping("/{assignmentId}/feedback")
+    public ResponseEntity<ApiResponse<Void>> deleteFeedback(
+            @PathVariable Long assignmentId
+    ) {
+        feedbackService.deleteMentorFeedback(assignmentId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(null));
+    }
 
 }
