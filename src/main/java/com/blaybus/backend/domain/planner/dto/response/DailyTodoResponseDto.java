@@ -32,6 +32,22 @@ public class DailyTodoResponseDto {
         private String title;
         private String goal;
         private Boolean isFeedbackDone;
+
+        // ✅ 추가: 과제에 연결된 파일 목록
+        private List<WorksheetDto> worksheets;
+    }
+
+    // ✅ 추가: 파일 DTO
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class WorksheetDto {
+        private Long worksheetId;
+        private String title;
+        private String subject;
+        private String fileUrl;
+        private String weekdays; // task_worksheet.weekdays 그대로 내려줌
     }
 
     @Getter
