@@ -1,6 +1,7 @@
 package com.blaybus.backend.domain.planner.service;
 
 import com.blaybus.backend.domain.content.Worksheet;
+import com.blaybus.backend.domain.content.service.R2StorageService;
 import com.blaybus.backend.domain.planner.dto.response.WorksheetUploadResponseDto;
 import com.blaybus.backend.domain.planner.repository.WorksheetRepository;
 import com.blaybus.backend.domain.user.MenteeProfile;
@@ -13,15 +14,12 @@ import com.blaybus.backend.global.util.SecurityUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
-import java.nio.file.*;
 import java.util.Set;
 import java.util.UUID;
 
@@ -31,18 +29,15 @@ public class WorksheetService {
 
     private final WorksheetRepository worksheetRepository;
     private final UserRepository userRepository;
+    private final R2StorageService r2StorageService;
 
     @PersistenceContext
     private EntityManager em;
-
-    @Value("${app.upload.worksheets-dir:uploads/worksheets}")
-    private String worksheetsDir;
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
             "image/png",
             "image/jpeg"
-            // 필요하면 "image/jpg" 추가
     );
 
     // ✅ 멘토 업로드
@@ -57,7 +52,6 @@ public class WorksheetService {
         ensureRole(user, Role.MENTOR);
 
         MentorProfile mentorRef = em.getReference(MentorProfile.class, user.getId());
-
         return uploadWorksheetInternal(file, title, subject, materialType, user, mentorRef, null);
     }
 
@@ -73,7 +67,6 @@ public class WorksheetService {
         ensureRole(user, Role.MENTEE);
 
         MenteeProfile menteeRef = em.getReference(MenteeProfile.class, user.getId());
-
         return uploadWorksheetInternal(file, title, subject, materialType, user, null, menteeRef);
     }
 
@@ -93,12 +86,22 @@ public class WorksheetService {
 
         MaterialType mt = parseMaterialType(materialType);
 
-        String savedName = saveToLocal(file);
-        String fileUrl = "/files/worksheets/" + savedName;
+        // ✅ R2 objectKey 생성
+        String original = (file.getOriginalFilename() == null) ? "file" : file.getOriginalFilename();
+        original = sanitizeFilename(original);
+
+        // 예: worksheets/mentor/12/uuid_original.pdf
+        String objectKey = "worksheets/"
+                + user.getRole().name().toLowerCase()
+                + "/" + user.getId()
+                + "/" + UUID.randomUUID() + "_" + original;
+
+        // ✅ R2 업로드 + public URL 생성
+        String fileUrl = r2StorageService.uploadAndGetUrl(file, objectKey);
 
         Worksheet worksheet = Worksheet.builder()
-                .mentor(mentorRef) // 멘토 업로드면 set, 아니면 null
-                .mentee(menteeRef) // 멘티 업로드면 set, 아니면 null
+                .mentor(mentorRef)
+                .mentee(menteeRef)
                 .title(title)
                 .subject(subject)
                 .materialType(mt)
@@ -107,8 +110,6 @@ public class WorksheetService {
 
         Worksheet saved = worksheetRepository.save(worksheet);
 
-        // ⚠️ DTO에 mentorId만 있으면 멘티 업로드에서도 mentorId에 userId가 들어감(임시)
-        // 다음 단계에서 uploaderId/uploaderRole로 DTO 개선 추천
         return WorksheetUploadResponseDto.builder()
                 .worksheetId(saved.getId())
                 .title(saved.getTitle())
@@ -119,7 +120,6 @@ public class WorksheetService {
                 .uploaderRole(user.getRole().name())
                 .createdAt(saved.getCreatedAt())
                 .build();
-
     }
 
     private User getCurrentUserOrThrow() {
@@ -160,23 +160,11 @@ public class WorksheetService {
         }
     }
 
-    private String saveToLocal(MultipartFile file) {
-        try {
-            Path dir = Paths.get(worksheetsDir).toAbsolutePath().normalize();
-            Files.createDirectories(dir);
-
-            String original = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
-            String ext = "";
-            int dot = original.lastIndexOf('.');
-            if (dot >= 0) ext = original.substring(dot);
-
-            String savedName = UUID.randomUUID() + ext;
-            Path target = dir.resolve(savedName);
-
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            return savedName;
-        } catch (IOException e) {
-            throw new RuntimeException("failed to save worksheet file", e);
-        }
+    // ✅ objectKey 안전화 (경로 깨짐 방지)
+    private String sanitizeFilename(String filename) {
+        // 경로 문자 제거 + 너무 이상한 문자 치환
+        String cleaned = filename.replace("\\", "_").replace("/", "_");
+        cleaned = cleaned.replaceAll("[\\r\\n\\t]", "_");
+        return cleaned;
     }
 }
