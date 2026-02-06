@@ -19,40 +19,38 @@ public class AssignmentFeedbackController {
     //피드백 작성
     @PostMapping("/{assignmentId}/feedback")
     public ResponseEntity<ApiResponse<FeedbackResponse.Create>> create(
-            @PathVariable Long assignmentId,
+            @PathVariable("assignmentId") Long taskId,
             @Valid @RequestBody FeedbackRequest.Create request
     ) {
-        FeedbackResponse.Create result = feedbackService.createMentorFeedback(assignmentId, request);
+        FeedbackResponse.Create result = feedbackService.createMentorFeedback(taskId, request);
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 
     //피드백 조회
     @GetMapping("/{assignmentId}/feedback")
     public ResponseEntity<ApiResponse<FeedbackResponse.Create>> get(
-            @PathVariable Long assignmentId
+            @PathVariable("assignmentId") Long taskId
     ) {
-        FeedbackResponse.Create result = feedbackService.getFeedback(assignmentId);
+        FeedbackResponse.Create result = feedbackService.getFeedback(taskId);
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 
     //피드백 수정
     @PutMapping("/{assignmentId}/feedback")
     public ResponseEntity<ApiResponse<FeedbackResponse.Create>> update(
-            @PathVariable Long assignmentId,
+            @PathVariable("assignmentId") Long taskId,
             @Valid @RequestBody FeedbackRequest.Create request
     ) {
-        FeedbackResponse.Create result =
-                feedbackService.updateMentorFeedback(assignmentId, request);
-
+        FeedbackResponse.Create result = feedbackService.updateMentorFeedback(taskId, request);
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 
     //피드백 삭제
     @DeleteMapping("/{assignmentId}/feedback")
     public ResponseEntity<ApiResponse<Void>> deleteFeedback(
-            @PathVariable Long assignmentId
+            @PathVariable("assignmentId") Long taskId
     ) {
-        feedbackService.deleteMentorFeedback(assignmentId);
+        feedbackService.deleteMentorFeedback(taskId);
         return ResponseEntity.ok(ApiResponse.onSuccess(null));
     }
 
