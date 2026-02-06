@@ -1,5 +1,6 @@
 package com.blaybus.backend.domain.planner.service;
 
+import com.blaybus.backend.domain.planner.StudyPlanner;
 import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.dto.response.TodoTaskSortedResponse;
 import com.blaybus.backend.domain.planner.repository.StudyPlannerRepository;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 
@@ -19,12 +21,16 @@ public class TodoService {
     private final TodoRepository todoRepository;
     private final StudyPlannerRepository studyPlannerRepository;
 
-    public List<TodoTaskSortedResponse> getSortedTasks(Long plannerId) {
-        if(!studyPlannerRepository.existsById(plannerId)) {
-            throw new RuntimeException("ID에 해당하는 플래너가 존재하지 않습니다.");
+    public List<TodoTaskSortedResponse> getSortedTasksByMenteeAndDate(Long menteeId, LocalDate date) {
+
+        StudyPlanner planner = studyPlannerRepository.findByMenteeIdAndPlanDate(menteeId, date)
+                .orElse(null);
+
+        if (planner == null) {
+            return List.of();
         }
 
-        List<TodoTask> tasks = todoRepository.findAllByPlannerIdWithFeedback(plannerId);
+        List<TodoTask> tasks = todoRepository.findAllByPlannerIdWithFeedback(planner.getId());
 
         return tasks.stream()
                 .sorted(Comparator.comparingInt(this::calculatePriority))
