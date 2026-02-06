@@ -2,8 +2,8 @@ package com.blaybus.backend.domain.planner.dto.response;
 
 import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.domain.planner.Submission;
+import com.blaybus.backend.domain.planner.SubmissionFile;
 import com.blaybus.backend.domain.planner.TodoTask;
-// TaskWorksheet import가 필요합니다. (패키지 경로 확인 필요)
 import com.blaybus.backend.domain.planner.TaskWorksheet;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
@@ -56,7 +56,8 @@ public record TaskDetailResponse(
                 .feedbackContent(task.getFeedback() != null ? task.getFeedback().getContent() : null)
                 .worksheets(worksheetDtos)
                 .submissions(task.getSubmissions().stream()
-                        .map(SubmissionDto::from)
+                        .flatMap(submission -> submission.getFiles().stream()
+                                .map(file -> SubmissionDto.from(submission, file)))
                         .toList())
                 .build();
     }
@@ -76,7 +77,7 @@ public record TaskDetailResponse(
         }
     }
 
-    // [내부 DTO] 제출물 정보
+    // [내부 DTO] 제출물 파일 정보 (Submission → SubmissionFile 단위)
     public record SubmissionDto(
             Long submissionId,
             String fileName,
@@ -84,11 +85,11 @@ public record TaskDetailResponse(
             @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
             LocalDateTime createdAt
     ) {
-        public static SubmissionDto from(Submission submission) {
+        public static SubmissionDto from(Submission submission, SubmissionFile file) {
             return new SubmissionDto(
                     submission.getId(),
-                    submission.getFileName(),
-                    submission.getFileUrl(),
+                    file.getFileName(),
+                    file.getFileUrl(),
                     submission.getCreatedAt()
             );
         }
