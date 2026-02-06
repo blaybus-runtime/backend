@@ -1,6 +1,7 @@
 package com.blaybus.backend.domain.content.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class FeedbackResponse {
 
@@ -10,11 +11,18 @@ public class FeedbackResponse {
             String profileImage
     ) {}
 
+    public record FileInfo(
+            Long fileId,
+            String fileName,
+            String fileUrl
+    ) {}
+
     public record Create(
             Long feedbackId,
             Long assignmentId,
             MentorInfo mentor,
             String content,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            List<FileInfo> files
     ) {}
 }
