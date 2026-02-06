@@ -2,6 +2,7 @@ package com.blaybus.backend.domain.planner.service;
 
 import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.domain.planner.StudyPlanner;
+import com.blaybus.backend.domain.planner.TimeRecord;
 import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.dto.request.MenteeTodoBatchRequest;
 import com.blaybus.backend.domain.planner.dto.request.MentorTodoBatchRequest;
@@ -10,6 +11,7 @@ import com.blaybus.backend.domain.planner.dto.response.MenteeTodoBatchResponse;
 import com.blaybus.backend.domain.planner.dto.response.MentorTodoBatchResponse;
 import com.blaybus.backend.domain.planner.dto.response.MentorTodoResponse;
 import com.blaybus.backend.domain.planner.repository.DailyStudyPlannerTodoRepository;
+import com.blaybus.backend.domain.planner.repository.TimeRecordRepository;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
 import com.blaybus.backend.domain.user.MenteeProfile;
 import com.blaybus.backend.domain.user.User;
@@ -37,7 +39,11 @@ public class DailyTodoService {
 
     private final DailyStudyPlannerTodoRepository studyPlannerRepository;
     private final TodoRepository todoRepository;
+<<<<<<< HEAD
     private final UserRepository userRepository;
+=======
+    private final TimeRecordRepository timeRecordRepository;
+>>>>>>> 9f57146af2d6045723c38477009e96fee8088377
 
     @PersistenceContext
     private EntityManager em;
@@ -75,10 +81,23 @@ public class DailyTodoService {
                         .build())
                 .toList();
 
+        // TimeRecord 조회 및 변환
+        List<TimeRecord> timeRecords = timeRecordRepository.findAllByPlanner_Id(planner.getId());
+        List<DailyTodoResponseDto.TimeRecordDto> timeRecordDtos = timeRecords.stream()
+                .map(r -> DailyTodoResponseDto.TimeRecordDto.builder()
+                        .id(r.getId())
+                        .subject(r.getSubject())
+                        .startTime(r.getStartTime())
+                        .endTime(r.getEndTime())
+                        .build())
+                .toList();
+
         return DailyTodoResponseDto.builder()
                 .menteeId(menteeId)
+                .plannerId(planner.getId())
                 .date(targetDate)
                 .todos(todoDtos)
+<<<<<<< HEAD
                 .build(); //여기
     }
 
@@ -128,6 +147,9 @@ public class DailyTodoService {
                                 .createdBy("MENTOR")
                                 .build())
                         .toList())
+=======
+                .timeRecords(timeRecordDtos)
+>>>>>>> 9f57146af2d6045723c38477009e96fee8088377
                 .build();
     }
 
