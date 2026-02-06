@@ -6,6 +6,15 @@ package com.blaybus.backend.domain.planner.repository;
 
 import com.blaybus.backend.domain.planner.StudyPlanner;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.time.LocalDate;
+import java.util.Optional;
 
 public interface StudyPlannerRepository extends JpaRepository<StudyPlanner, Long> {
+
+    @Query("SELECT s FROM StudyPlanner s WHERE s.mentee.userId = :menteeId AND s.planDate = :planDate")
+    Optional<StudyPlanner> findByMenteeIdAndPlanDate(Long menteeId, LocalDate planDate);
+
+    boolean existsById(Long id);
 }
