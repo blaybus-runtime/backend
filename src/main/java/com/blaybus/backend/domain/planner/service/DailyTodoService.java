@@ -76,20 +76,37 @@ public class DailyTodoService {
         }
 
         StudyPlanner planner = plannerOpt.get();
-        List<TodoTask> tasks = todoRepository.findAllByPlanner_IdOrderByPriorityAscIdAsc(planner.getId());
+        List<TodoTask> tasks = todoRepository.findAllDailyByPlannerId(planner.getId());
 
         List<DailyTodoResponseDto.TodoDto> todoDtos = tasks.stream()
-                .map(t -> DailyTodoResponseDto.TodoDto.builder()
-                        .id(t.getId())
-                        .content(t.getContent())
-                        .subject(t.getSubject())
-                        .isCompleted(t.isCompleted())
-                        .priority(t.getPriority())
-                        .taskType(t.getTaskType().name())
-                        .title(t.getTitle())
-                        .goal(t.getGoal())
-                        .isFeedbackDone(t.getFeedback() != null)
-                        .build())
+                .map(t -> {
+                    // ✅ taskWorksheets -> worksheets DTO 변환
+                    List<DailyTodoResponseDto.WorksheetDto> worksheetDtos =
+                            (t.getTaskWorksheets() == null ? List.<DailyTodoResponseDto.WorksheetDto>of()
+                                    : t.getTaskWorksheets().stream()
+                                    .map(tw -> DailyTodoResponseDto.WorksheetDto.builder()
+                                            .worksheetId(tw.getWorksheet().getId())
+                                            .title(tw.getWorksheet().getTitle())
+                                            .subject(tw.getWorksheet().getSubject())
+                                            .fileUrl(tw.getWorksheet().getFileUrl())
+                                            .weekdays(tw.getWeekdays())
+                                            .build())
+                                    .toList()
+                            );
+
+                    return DailyTodoResponseDto.TodoDto.builder()
+                            .id(t.getId())
+                            .content(t.getContent())
+                            .subject(t.getSubject())
+                            .isCompleted(t.isCompleted())
+                            .priority(t.getPriority())
+                            .taskType(t.getTaskType().name())
+                            .title(t.getTitle())
+                            .goal(t.getGoal())
+                            .isFeedbackDone(t.getFeedback() != null && t.getFeedback().getContent() != null)
+                            .worksheets(worksheetDtos)
+                            .build();
+                })
                 .toList();
 
         List<TimeRecord> timeRecords = timeRecordRepository.findAllByPlanner_Id(planner.getId());
