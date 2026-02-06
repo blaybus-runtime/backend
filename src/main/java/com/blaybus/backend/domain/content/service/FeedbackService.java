@@ -30,9 +30,8 @@ public class FeedbackService {
 
     //피드백 작성
     @Transactional
-    public FeedbackResponse.Create createMentorFeedback(Long assignmentId, FeedbackRequest.Create request) {
+    public FeedbackResponse.Create createMentorFeedback(Long taskId, FeedbackRequest.Create request) {
 
-        // 1) 로그인 유저 확인
         String username = SecurityUtils.getCurrentUsername();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."));
@@ -41,19 +40,17 @@ public class FeedbackService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "멘토만 피드백을 작성할 수 있습니다.");
         }
 
-        // 2) 멘토 프로필 조회 (mentorId = userId)
         MentorProfile mentor = mentorProfileRepository.findById(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "멘토 프로필을 찾을 수 없습니다."));
 
-        // 3) 과제(task) 조회
-        TodoTask task = todoRepository.findById(assignmentId)
+        // 과제(task) 조회 (기존 assignmentId → taskId)
+        TodoTask task = todoRepository.findById(taskId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "과제를 찾을 수 없습니다."));
 
-        // 4) 중복 작성 방지 (task당 1개)
-        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId).orElse(null);
+        // 중복 작성 방지 (task당 1개)
+        Feedback feedback = feedbackRepository.findByTask_Id(taskId).orElse(null);
 
         if (feedback == null) {
-            // 처음 작성: INSERT
             feedback = feedbackRepository.save(
                     Feedback.builder()
                             .task(task)
@@ -62,7 +59,6 @@ public class FeedbackService {
                             .build()
             );
         } else {
-            // 원래 작성자만 재작성 가능하게
             if (!feedback.getMentor().getUserId().equals(user.getId())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인이 작성한 피드백만 다시 작성할 수 있습니다.");
             }
@@ -73,7 +69,6 @@ public class FeedbackService {
             feedback.updateContent(request.content());
         }
 
-        // 6) 응답 DTO
         FeedbackResponse.MentorInfo mentorInfo = new FeedbackResponse.MentorInfo(
                 mentor.getUserId(),
                 user.getName(),
@@ -82,7 +77,7 @@ public class FeedbackService {
 
         return new FeedbackResponse.Create(
                 feedback.getId(),
-                assignmentId,
+                taskId,
                 mentorInfo,
                 feedback.getContent(),
                 feedback.getCreatedAt()
@@ -91,13 +86,13 @@ public class FeedbackService {
 
     //피드백 조회
     @Transactional(readOnly = true)
-    public FeedbackResponse.Create getFeedback(Long assignmentId) {
+    public FeedbackResponse.Create getFeedback(Long taskId) {
 
-        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId).orElse(null);
+        Feedback feedback = feedbackRepository.findByTask_Id(taskId).orElse(null);
         if (feedback == null || feedback.getContent() == null) {
-            return null; // data:null
+            return null;
         }
-        // mentorName/profileImage는 User에서 가져오기
+
         User mentorUser = feedback.getMentor().getUser();
 
         FeedbackResponse.MentorInfo mentorInfo = new FeedbackResponse.MentorInfo(
@@ -108,7 +103,7 @@ public class FeedbackService {
 
         return new FeedbackResponse.Create(
                 feedback.getId(),
-                assignmentId,
+                taskId,
                 mentorInfo,
                 feedback.getContent(),
                 feedback.getCreatedAt()
@@ -118,10 +113,9 @@ public class FeedbackService {
     //피드백 수정
     @Transactional
     public FeedbackResponse.Create updateMentorFeedback(
-            Long assignmentId,
+            Long taskId,
             FeedbackRequest.Create request
     ) {
-        // 1) 로그인 유저 확인
         String username = SecurityUtils.getCurrentUsername();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -134,8 +128,7 @@ public class FeedbackService {
             );
         }
 
-        // 2) 기존 피드백 조회
-        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId)
+        Feedback feedback = feedbackRepository.findByTask_Id(taskId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "수정할 피드백이 없습니다."
                 ));
@@ -144,18 +137,14 @@ public class FeedbackService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "수정할 피드백이 없습니다.");
         }
 
-        // 3) 본인이 작성한 피드백인지 확인
         if (!feedback.getMentor().getUserId().equals(user.getId())) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN, "본인이 작성한 피드백만 수정할 수 있습니다."
             );
         }
 
-        // 4) 수정
         feedback.updateContent(request.content());
-        // save 안 해도 JPA dirty checking으로 반영됨
 
-        // 5) 응답 DTO
         User mentorUser = feedback.getMentor().getUser();
         FeedbackResponse.MentorInfo mentorInfo = new FeedbackResponse.MentorInfo(
                 mentorUser.getId(),
@@ -165,7 +154,7 @@ public class FeedbackService {
 
         return new FeedbackResponse.Create(
                 feedback.getId(),
-                assignmentId,
+                taskId,
                 mentorInfo,
                 feedback.getContent(),
                 feedback.getCreatedAt()
@@ -174,11 +163,9 @@ public class FeedbackService {
 
     //피드백 삭제
     @Transactional
-    public void deleteMentorFeedback(Long assignmentId) {
+    public void deleteMentorFeedback(Long taskId) {
 
-        // 1) 로그인 유저
         String username = SecurityUtils.getCurrentUsername();
-
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."
@@ -190,21 +177,20 @@ public class FeedbackService {
             );
         }
 
-        // 2) 피드백 조회
-        Feedback feedback = feedbackRepository.findByTask_Id(assignmentId)
+        Feedback feedback = feedbackRepository.findByTask_Id(taskId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "삭제할 피드백이 없습니다."
                 ));
 
-        // 3) 작성자 본인 확인
         if (!feedback.getMentor().getUserId().equals(user.getId())) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN, "본인이 작성한 피드백만 삭제할 수 있습니다."
             );
         }
 
-        // 4) 삭제
         feedback.clearContent();
     }
+
+
 
 }
