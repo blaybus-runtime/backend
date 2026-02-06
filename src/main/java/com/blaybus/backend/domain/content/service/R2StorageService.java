@@ -23,6 +23,10 @@ public class R2StorageService {
     @Value("${r2.bucket}")
     private String bucket;
 
+    @Value("${r2.public-base-url}")
+    private String publicBaseUrl;
+
+
     public String upload(MultipartFile file, String objectKey) {
         try {
             PutObjectRequest req = PutObjectRequest.builder()
@@ -45,4 +49,25 @@ public class R2StorageService {
                 .build();
         return s3.getObject(req);
     }
+
+    //생성 메서드
+    public String uploadAndGetUrl(MultipartFile file, String objectKey) {
+        upload(file, objectKey);
+        return publicBaseUrl + "/" + objectKey;
+    }
+
+    //다운로드/삭제용
+    public String extractKeyFromUrl(String fileUrl) {
+        String prefix = publicBaseUrl.endsWith("/") ? publicBaseUrl : publicBaseUrl + "/";
+        if (!fileUrl.startsWith(prefix)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fileUrl이 public-base-url과 일치하지 않습니다.");
+        }
+        return fileUrl.substring(prefix.length());
+    }
+
+    //파일 삭제
+    public void delete(String objectKey) {
+        s3.deleteObject(b -> b.bucket(bucket).key(objectKey));
+    }
+
 }

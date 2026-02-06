@@ -1,6 +1,8 @@
 package com.blaybus.backend.domain.content.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 
 public class FeedbackRequest {
 
