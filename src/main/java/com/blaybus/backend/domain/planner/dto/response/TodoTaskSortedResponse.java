@@ -8,6 +8,7 @@ import lombok.Builder;
 public record TodoTaskSortedResponse (
         Long taskId,
         String title,
+        String content,
         String subject,
         TaskType taskType,
         boolean isTaskCompleted,
@@ -17,6 +18,7 @@ public record TodoTaskSortedResponse (
         return TodoTaskSortedResponse.builder()
                 .taskId(task.getId())
                 .title(task.getTitle())
+                .content(task.getContent())
                 .subject(task.getSubject())
                 .taskType(task.getTaskType())
                 .isTaskCompleted(task.isCompleted())
