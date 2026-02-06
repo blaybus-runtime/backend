@@ -1,15 +1,10 @@
 package com.blaybus.backend.domain.planner.service;
 
 import com.blaybus.backend.domain.content.Worksheet;
-import com.blaybus.backend.domain.planner.StudyPlanner;
-import com.blaybus.backend.domain.planner.TimeRecord;
-import com.blaybus.backend.domain.planner.TodoTask;
+import com.blaybus.backend.domain.planner.*;
 import com.blaybus.backend.domain.planner.dto.request.MenteeTodoBatchRequest;
 import com.blaybus.backend.domain.planner.dto.request.MentorTodoBatchRequest;
-import com.blaybus.backend.domain.planner.dto.response.DailyTodoResponseDto;
-import com.blaybus.backend.domain.planner.dto.response.MenteeTodoBatchResponse;
-import com.blaybus.backend.domain.planner.dto.response.MentorTodoBatchResponse;
-import com.blaybus.backend.domain.planner.dto.response.MentorTodoResponse;
+import com.blaybus.backend.domain.planner.dto.response.*;
 import com.blaybus.backend.domain.planner.repository.DailyStudyPlannerTodoRepository;
 import com.blaybus.backend.domain.planner.repository.TimeRecordRepository;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
@@ -45,6 +40,9 @@ public class DailyTodoService {
     @PersistenceContext
     private EntityManager em;
 
+    /* =========================
+       일일 조회
+     ========================= */
     public DailyTodoResponseDto getDaily(LocalDate date) {
         String username = SecurityUtils.getCurrentUsername();
         User user = userRepository.findByUsername(username)
@@ -78,7 +76,6 @@ public class DailyTodoService {
                         .build())
                 .toList();
 
-        // TimeRecord 조회 및 변환
         List<TimeRecord> timeRecords = timeRecordRepository.findAllByPlanner_Id(planner.getId());
         List<DailyTodoResponseDto.TimeRecordDto> timeRecordDtos = timeRecords.stream()
                 .map(r -> DailyTodoResponseDto.TimeRecordDto.builder()
@@ -98,23 +95,35 @@ public class DailyTodoService {
                 .build();
     }
 
+    /* =========================
+       멘티 자가 생성 (기존 유지)
+     ========================= */
     @Transactional
     public MenteeTodoBatchResponse createMenteeTodoBatch(MenteeTodoBatchRequest request) {
         String username = SecurityUtils.getCurrentUsername();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."));
 
-
-
         if (user.getRole() != Role.MENTEE) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "멘티 권한이 필요합니다.");
         }
 
-        return generateTodoBatch(user.getId(), request.getStartDate(), request.getEndDate(),
-                request.getWeekdays(), request.getSubject(), request.getTitle(),
-                request.getGoal(), request.getWorksheetId(), "MENTEE");
+        return generateTodoBatch(
+                user.getId(),
+                request.getStartDate(),
+                request.getEndDate(),
+                request.getWeekdays(),
+                request.getSubject(),
+                request.getTitle(),
+                request.getGoal(),
+                request.getWorksheetId(),
+                "MENTEE"
+        );
     }
 
+    /* =========================
+       멘토 생성 (다중 파일 지원)
+     ========================= */
     @Transactional
     public MentorTodoBatchResponse createMentorTodoBatch(MentorTodoBatchRequest req) {
         String username = SecurityUtils.getCurrentUsername();
@@ -125,9 +134,17 @@ public class DailyTodoService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "멘토만 과제를 생성할 수 있습니다.");
         }
 
-        MenteeTodoBatchResponse result = generateTodoBatch(req.getMenteeId(), req.getStartDate(), req.getEndDate(),
-                req.getWeekdays(), req.getSubject(), req.getTitle(),
-                req.getGoal(), req.getWorksheetId(), "MENTOR");
+        MenteeTodoBatchResponse result = generateTodoBatchV2(
+                req.getMenteeId(),
+                req.getStartDate(),
+                req.getEndDate(),
+                req.getWeekdays(),      // task 생성 요일
+                req.getSubject(),
+                req.getTitle(),
+                req.getGoal(),
+                req.getFiles(),         // 파일별 설정
+                "MENTOR"
+        );
 
         return MentorTodoBatchResponse.builder()
                 .menteeId(req.getMenteeId())
@@ -146,31 +163,33 @@ public class DailyTodoService {
                 .build();
     }
 
-
-    // 메서드 중복 제거: 하나만 남김
-    private MenteeTodoBatchResponse generateTodoBatch(Long menteeUserId, LocalDate startDate, LocalDate endDate,
-                                                      List<String> weekdays, String subject, String title,
-                                                      String goal, Long worksheetId, String creatorRole) {
-
-        // DB에 MenteeProfile이 있는지 먼저 확인
+    /* =========================
+       기존 단일 worksheet 로직 (멘티용)
+     ========================= */
+    private MenteeTodoBatchResponse generateTodoBatch(
+            Long menteeUserId,
+            LocalDate startDate,
+            LocalDate endDate,
+            List<String> weekdays,
+            String subject,
+            String title,
+            String goal,
+            Long worksheetId,
+            String creatorRole
+    ) {
         MenteeProfile mentee = em.find(MenteeProfile.class, menteeUserId);
         if (mentee == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "멘티 프로필(ID: " + menteeUserId + ")이 존재하지 않습니다.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "멘티 프로필이 존재하지 않습니다.");
         }
 
-        Worksheet worksheetRef = null;
-        if (worksheetId != null) {
-            worksheetRef = em.find(Worksheet.class, worksheetId);
-        }
-
+        Worksheet worksheetRef = worksheetId != null ? em.find(Worksheet.class, worksheetId) : null;
         Set<DayOfWeek> selectedDays = parseWeekdays(weekdays);
-        List<StudyPlanner> existingPlanners = studyPlannerRepository.findAllByMentee_UserIdAndPlanDateBetween(
-                menteeUserId, startDate, endDate);
+
+        List<StudyPlanner> existingPlanners =
+                studyPlannerRepository.findAllByMentee_UserIdAndPlanDateBetween(menteeUserId, startDate, endDate);
 
         Map<LocalDate, StudyPlanner> plannerMap = new HashMap<>();
-        for (StudyPlanner p : existingPlanners) {
-            plannerMap.put(p.getPlanDate(), p);
-        }
+        existingPlanners.forEach(p -> plannerMap.put(p.getPlanDate(), p));
 
         List<MenteeTodoBatchResponse.MenteeTodoItem> created = new ArrayList<>();
         LocalDate d = startDate;
@@ -181,26 +200,25 @@ public class DailyTodoService {
                 continue;
             }
 
-            StudyPlanner planner = plannerMap.get(d);
-            if (planner == null) {
-                planner = studyPlannerRepository.save(StudyPlanner.builder()
-                        .mentee(mentee)
-                        .planDate(d)
-                        .build());
-                plannerMap.put(d, planner);
-            }
+            StudyPlanner planner = plannerMap.computeIfAbsent(d,
+                    day -> studyPlannerRepository.save(
+                            StudyPlanner.builder().mentee(mentee).planDate(day).build()
+                    )
+            );
 
-            TodoTask saved = todoRepository.save(TodoTask.builder()
-                    .planner(planner)
-                    .worksheet(worksheetRef)
-                    .content(title + " | " + goal)
-                    .subject(subject)
-                    .title(title)
-                    .goal(goal)
-                    .isCompleted(false)
-                    .priority(1)
-                    .taskType(TaskType.ASSIGNMENT)
-                    .build());
+            TodoTask saved = todoRepository.save(
+                    TodoTask.builder()
+                            .planner(planner)
+                            .worksheet(worksheetRef)
+                            .content(title + " | " + goal)
+                            .subject(subject)
+                            .title(title)
+                            .goal(goal)
+                            .isCompleted(false)
+                            .priority(1)
+                            .taskType(TaskType.ASSIGNMENT)
+                            .build()
+            );
 
             created.add(MenteeTodoBatchResponse.MenteeTodoItem.builder()
                     .taskId(saved.getId())
@@ -222,23 +240,151 @@ public class DailyTodoService {
                 .build();
     }
 
+    /* =========================
+       멘토용 다중 파일 로직 (V2)
+     ========================= */
+    private MenteeTodoBatchResponse generateTodoBatchV2(
+            Long menteeUserId,
+            LocalDate startDate,
+            LocalDate endDate,
+            List<String> taskWeekdays,
+            String subject,
+            String title,
+            String goal,
+            List<MentorTodoBatchRequest.FileItem> files,
+            String creatorRole
+    ) {
+        MenteeProfile mentee = em.find(MenteeProfile.class, menteeUserId);
+        if (mentee == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "멘티 프로필이 존재하지 않습니다.");
+        }
+
+        Set<DayOfWeek> selectedTaskDays = parseWeekdays(taskWeekdays);
+
+        List<FileConfig> fileConfigs = new ArrayList<>();
+        for (MentorTodoBatchRequest.FileItem f : files) {
+            Worksheet ws = em.find(Worksheet.class, f.getWorksheetId());
+            if (ws == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "worksheetId=" + f.getWorksheetId() + " 를 찾을 수 없습니다.");
+            }
+
+            List<String> fileWeekdays = (f.getWeekdays() == null || f.getWeekdays().isEmpty())
+                    ? taskWeekdays
+                    : f.getWeekdays();
+
+            Set<DayOfWeek> days = parseWeekdays(fileWeekdays);
+            fileConfigs.add(new FileConfig(ws, days, toWeekdayString(fileWeekdays)));
+        }
+
+        List<StudyPlanner> existingPlanners =
+                studyPlannerRepository.findAllByMentee_UserIdAndPlanDateBetween(menteeUserId, startDate, endDate);
+
+        Map<LocalDate, StudyPlanner> plannerMap = new HashMap<>();
+        existingPlanners.forEach(p -> plannerMap.put(p.getPlanDate(), p));
+
+        List<MenteeTodoBatchResponse.MenteeTodoItem> created = new ArrayList<>();
+        LocalDate d = startDate;
+
+        while (!d.isAfter(endDate)) {
+            if (!selectedTaskDays.isEmpty() && !selectedTaskDays.contains(d.getDayOfWeek())) {
+                d = d.plusDays(1);
+                continue;
+            }
+
+            StudyPlanner planner = plannerMap.computeIfAbsent(d,
+                    day -> studyPlannerRepository.save(
+                            StudyPlanner.builder().mentee(mentee).planDate(day).build()
+                    )
+            );
+
+            TodoTask task = todoRepository.save(
+                    TodoTask.builder()
+                            .planner(planner)
+                            .worksheet(null) // 단일 FK 사용 안 함
+                            .content(title + " | " + goal)
+                            .subject(subject)
+                            .title(title)
+                            .goal(goal)
+                            .isCompleted(false)
+                            .priority(1)
+                            .taskType(TaskType.ASSIGNMENT)
+                            .build()
+            );
+
+            for (FileConfig fc : fileConfigs) {
+                if (fc.days.isEmpty() || fc.days.contains(d.getDayOfWeek())) {
+                    em.persist(
+                            TaskWorksheet.builder()
+                                    .task(task)
+                                    .worksheet(fc.worksheet)
+                                    .weekdays(fc.weekdays)
+                                    .build()
+                    );
+                }
+            }
+
+            created.add(MenteeTodoBatchResponse.MenteeTodoItem.builder()
+                    .taskId(task.getId())
+                    .date(d)
+                    .subject(subject)
+                    .goal(goal)
+                    .title(title)
+                    .status("UNDONE")
+                    .createdBy(creatorRole)
+                    .build());
+
+            d = d.plusDays(1);
+        }
+
+        return MenteeTodoBatchResponse.builder()
+                .menteeId(menteeUserId)
+                .createdCount(created.size())
+                .tasks(created)
+                .build();
+    }
+
+    /* =========================
+       유틸
+     ========================= */
     private Set<DayOfWeek> parseWeekdays(List<String> weekdays) {
         if (weekdays == null || weekdays.isEmpty()) return Collections.emptySet();
+
         Set<DayOfWeek> result = new HashSet<>();
         for (String w : weekdays) {
             if (w == null) continue;
             String s = w.trim().toUpperCase();
             switch (s) {
-                case "일": case "SUN": result.add(DayOfWeek.SUNDAY); break;
-                case "월": case "MON": result.add(DayOfWeek.MONDAY); break;
-                case "화": case "TUE": result.add(DayOfWeek.TUESDAY); break;
-                case "수": case "WED": result.add(DayOfWeek.WEDNESDAY); break;
-                case "목": case "THU": result.add(DayOfWeek.THURSDAY); break;
-                case "금": case "FRI": result.add(DayOfWeek.FRIDAY); break;
-                case "토": case "SAT": result.add(DayOfWeek.SATURDAY); break;
-                default: throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요일 오류: " + w);
+                case "일", "SUN" -> result.add(DayOfWeek.SUNDAY);
+                case "월", "MON" -> result.add(DayOfWeek.MONDAY);
+                case "화", "TUE" -> result.add(DayOfWeek.TUESDAY);
+                case "수", "WED" -> result.add(DayOfWeek.WEDNESDAY);
+                case "목", "THU" -> result.add(DayOfWeek.THURSDAY);
+                case "금", "FRI" -> result.add(DayOfWeek.FRIDAY);
+                case "토", "SAT" -> result.add(DayOfWeek.SATURDAY);
+                default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요일 오류: " + w);
             }
         }
         return result;
+    }
+
+    private String toWeekdayString(List<String> weekdays) {
+        if (weekdays == null || weekdays.isEmpty()) return null;
+        return weekdays.stream()
+                .filter(Objects::nonNull)
+                .map(w -> w.trim().toUpperCase())
+                .distinct()
+                .collect(Collectors.joining(","));
+    }
+
+    private static class FileConfig {
+        Worksheet worksheet;
+        Set<DayOfWeek> days;
+        String weekdays;
+
+        FileConfig(Worksheet worksheet, Set<DayOfWeek> days, String weekdays) {
+            this.worksheet = worksheet;
+            this.days = days;
+            this.weekdays = weekdays;
+        }
     }
 }
