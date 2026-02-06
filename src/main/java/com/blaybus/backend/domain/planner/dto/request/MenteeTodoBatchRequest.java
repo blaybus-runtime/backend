@@ -13,10 +13,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class MentorTodoBatchRequest {
-
-    @NotNull
-    private Long menteeId;
+public class MenteeTodoBatchRequest {
 
     @NotBlank
     private String subject; // 한글: "국어", "영어", "수학" ...
@@ -35,9 +32,6 @@ public class MentorTodoBatchRequest {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
 
-    private Long worksheetId; // optional
-
-    private List<String> weekdays; // optional
-
-
+    private Long worksheetId;     // optional
+    private List<String> weekdays; // optional ("월","화","수","목","금","토","일")
 }

@@ -3,15 +3,22 @@ package com.blaybus.backend.domain.planner.service;
 import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.domain.planner.dto.response.WorksheetUploadResponseDto;
 import com.blaybus.backend.domain.planner.repository.WorksheetRepository;
+import com.blaybus.backend.domain.user.MenteeProfile;
 import com.blaybus.backend.domain.user.MentorProfile;
+import com.blaybus.backend.domain.user.User;
+import com.blaybus.backend.domain.user.repository.UserRepository;
 import com.blaybus.backend.global.enum_type.MaterialType;
+import com.blaybus.backend.global.enum_type.Role;
+import com.blaybus.backend.global.util.SecurityUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -23,6 +30,7 @@ import java.util.UUID;
 public class WorksheetService {
 
     private final WorksheetRepository worksheetRepository;
+    private final UserRepository userRepository;
 
     @PersistenceContext
     private EntityManager em;
@@ -34,48 +42,63 @@ public class WorksheetService {
             "application/pdf",
             "image/png",
             "image/jpeg"
+            // 필요하면 "image/jpg" 추가
     );
 
+    // ✅ 멘토 업로드
     @Transactional
-    public WorksheetUploadResponseDto uploadWorksheet(
+    public WorksheetUploadResponseDto uploadWorksheetAsMentor(
+            MultipartFile file,
+            String title,
+            String subject,
+            String materialType
+    ) {
+        User user = getCurrentUserOrThrow();
+        ensureRole(user, Role.MENTOR);
+
+        MentorProfile mentorRef = em.getReference(MentorProfile.class, user.getId());
+
+        return uploadWorksheetInternal(file, title, subject, materialType, user, mentorRef, null);
+    }
+
+    // ✅ 멘티 업로드
+    @Transactional
+    public WorksheetUploadResponseDto uploadWorksheetAsMentee(
+            MultipartFile file,
+            String title,
+            String subject,
+            String materialType
+    ) {
+        User user = getCurrentUserOrThrow();
+        ensureRole(user, Role.MENTEE);
+
+        MenteeProfile menteeRef = em.getReference(MenteeProfile.class, user.getId());
+
+        return uploadWorksheetInternal(file, title, subject, materialType, user, null, menteeRef);
+    }
+
+    // ======================
+    // 공통 로직
+    // ======================
+    private WorksheetUploadResponseDto uploadWorksheetInternal(
             MultipartFile file,
             String title,
             String subject,
             String materialType,
-            Long mentorId
+            User user,
+            MentorProfile mentorRef,
+            MenteeProfile menteeRef
     ) {
-        // 1) 검증
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("file is required");
-        }
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new IllegalArgumentException("unsupported file type: " + contentType);
-        }
-        if (title == null || title.isBlank()) {
-            throw new IllegalArgumentException("title is required");
-        }
-        if (subject == null || subject.isBlank()) {
-            throw new IllegalArgumentException("subject is required");
-        }
+        validate(file, title, subject);
 
-        // 2) materialType String -> Enum
-        MaterialType mt = (materialType == null || materialType.isBlank())
-                ? MaterialType.FILE
-                : MaterialType.valueOf(materialType);
+        MaterialType mt = parseMaterialType(materialType);
 
-        // 3) 로컬 저장
         String savedName = saveToLocal(file);
-
-        // 4) fileUrl 규칙 (WebConfig의 /files/worksheets/** 와 맞춰야 함)
         String fileUrl = "/files/worksheets/" + savedName;
 
-        // 5) mentor 엔티티 참조(프록시) 가져오기 (DB 조회 없이 FK만 세팅 가능)
-        MentorProfile mentorRef = em.getReference(MentorProfile.class, mentorId);
-
-        // 6) Worksheet 생성/저장
         Worksheet worksheet = Worksheet.builder()
-                .mentor(mentorRef)
+                .mentor(mentorRef) // 멘토 업로드면 set, 아니면 null
+                .mentee(menteeRef) // 멘티 업로드면 set, 아니면 null
                 .title(title)
                 .subject(subject)
                 .materialType(mt)
@@ -84,16 +107,57 @@ public class WorksheetService {
 
         Worksheet saved = worksheetRepository.save(worksheet);
 
-        // 7) 응답 DTO (mentorId는 mentor 엔티티에서 꺼내면 됨)
+        // ⚠️ DTO에 mentorId만 있으면 멘티 업로드에서도 mentorId에 userId가 들어감(임시)
+        // 다음 단계에서 uploaderId/uploaderRole로 DTO 개선 추천
         return WorksheetUploadResponseDto.builder()
                 .worksheetId(saved.getId())
                 .title(saved.getTitle())
                 .subject(saved.getSubject())
                 .materialType(saved.getMaterialType().name())
                 .fileUrl(saved.getFileUrl())
-                .mentorId(saved.getMentor().getUserId())  // MentorProfile PK가 userId인 구조
+                .uploaderId(user.getId())
+                .uploaderRole(user.getRole().name())
                 .createdAt(saved.getCreatedAt())
                 .build();
+
+    }
+
+    private User getCurrentUserOrThrow() {
+        String username = SecurityUtils.getCurrentUsername();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."));
+    }
+
+    private void ensureRole(User user, Role expected) {
+        if (user.getRole() != expected) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, expected + " 권한이 필요합니다.");
+        }
+    }
+
+    private void validate(MultipartFile file, String title, String subject) {
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "파일은 필수입니다.");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 파일 형식입니다: " + contentType);
+        }
+        if (title == null || title.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "제목은 필수입니다.");
+        }
+        if (subject == null || subject.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "과목은 필수입니다.");
+        }
+    }
+
+    private MaterialType parseMaterialType(String materialType) {
+        if (materialType == null || materialType.isBlank()) return MaterialType.FILE;
+
+        try {
+            return MaterialType.valueOf(materialType.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 materialType 입니다: " + materialType);
+        }
     }
 
     private String saveToLocal(MultipartFile file) {

@@ -24,8 +24,8 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll() // ✅ 로그인은 열어두기
-                        .requestMatchers("/api/v1/mentor/**").permitAll()
-                        .requestMatchers("/api/v1/mentor/tasks/**").permitAll()
+                        //.requestMatchers("/api/v1/mentor/**").permitAll()
+                        //.requestMatchers("/api/v1/mentor/tasks/**").permitAll()
                         .requestMatchers("/api/v1/columns/**").permitAll() // ✅ 칼럼 조회는 열어두기
                         .requestMatchers("/api/v1/study/**").permitAll() // ✅ study 관련 기능도 열어두기
                         .requestMatchers("/api/v1/matchings/**").permitAll()
@@ -33,6 +33,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/comments/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/v1/mentees/**").hasRole("MENTEE")
+                        .requestMatchers("/api/v1/mentor/**").hasAnyAuthority("MENTOR", "ROLE_MENTOR")
+                        .requestMatchers("/api/v1/mentee/**").hasAnyAuthority("MENTEE", "ROLE_MENTEE")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
