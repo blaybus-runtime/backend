@@ -1,5 +1,6 @@
 package com.blaybus.backend.domain.planner;
 
+import com.blaybus.backend.domain.content.Feedback;
 import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.global.enum_type.TaskType;
 import jakarta.persistence.*;
@@ -7,12 +8,9 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import com.blaybus.backend.domain.content.Feedback;
-import org.springframework.scheduling.config.Task;
 
 import java.util.ArrayList;
 import java.util.List;
-
 
 @Entity
 @Getter
@@ -27,7 +25,7 @@ public class TodoTask {
     @JoinColumn(name = "planner_id")
     private StudyPlanner planner;
 
-    // 어떤 학습지인지 (N:1, 자습이면 Null 가능)
+    // (기존 호환용) 단일 학습지 FK - 3단계 이후 제거 예정
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "worksheet_id")
     private Worksheet worksheet;
@@ -60,8 +58,21 @@ public class TodoTask {
     @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
     private List<Submission> submissions = new ArrayList<>();
 
+    @OneToMany(mappedBy = "task", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TaskWorksheet> taskWorksheets = new ArrayList<>();
+
     @Builder
-    public TodoTask(StudyPlanner planner, Worksheet worksheet, String content, String subject, String title, String goal, boolean isCompleted, Integer priority, TaskType taskType) {
+    public TodoTask(
+            StudyPlanner planner,
+            Worksheet worksheet,
+            String content,
+            String subject,
+            String title,
+            String goal,
+            boolean isCompleted,
+            Integer priority,
+            TaskType taskType
+    ) {
         this.planner = planner;
         this.worksheet = worksheet;
         this.content = content;
@@ -78,5 +89,3 @@ public class TodoTask {
     }
 
 }
-
-
