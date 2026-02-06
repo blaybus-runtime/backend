@@ -22,14 +22,15 @@ public class MentorPlannerController {
     private final DailyTodoService dailyTodoService;
 
     /*
-     * 멘티의 특정 날짜(Planner) 할 일 목록 조회 (우선순위 정렬됨)
-     * GET /api/v1/mentor/planners/{plannerId}/tasks
+     * 멘티의 특정 날짜 할 일 목록 조회 (우선순위 정렬됨)
+     * URL: GET /api/v1/mentor/planners/daily?menteeId=3&date=2026-02-01
      */
-    @GetMapping("/{plannerId}/tasks")
+    @GetMapping("/daily")
     public ApiResponse<List<TodoTaskSortedResponse>> getMenteeTasks(
-            @PathVariable(name = "plannerId") Long plannerId
+            @RequestParam(name = "menteeId") Long menteeId,
+            @RequestParam(name = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        List<TodoTaskSortedResponse> response = todoService.getSortedTasks(plannerId);
+        List<TodoTaskSortedResponse> response = todoService.getSortedTasksByMenteeAndDate(menteeId, date);
         return ApiResponse.onSuccess(response);
     }
 
