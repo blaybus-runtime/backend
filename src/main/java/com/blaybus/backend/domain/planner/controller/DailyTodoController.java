@@ -18,12 +18,10 @@ public class DailyTodoController {
     private final DailyTodoService dailyTodoService;
 
     @GetMapping("/daily")
-    public ResponseEntity<ApiResponse<DailyTodoResponseDto>> getDaily(   //  반환 타입 변경
-                                                                         @RequestParam Long menteeId,
-                                                                         @RequestParam(required = false)
-                                                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    public ResponseEntity<ApiResponse<DailyTodoResponseDto>> getDaily(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        DailyTodoResponseDto result = dailyTodoService.getDaily(menteeId, date);
-        return ResponseEntity.ok(ApiResponse.onSuccess(result));         //  감싸서 반환
+        DailyTodoResponseDto result = dailyTodoService.getDaily(date);
+        return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 }

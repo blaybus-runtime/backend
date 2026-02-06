@@ -10,17 +10,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/mentor/worksheets")
-public class WorksheetController {
+@RequestMapping("/api/v1/mentee/worksheets")
+public class MenteeWorksheetController {
 
     private final WorksheetService worksheetService;
 
-    /**
-     * Worksheet 파일 업로드 API
-     * - multipart/form-data로 file + title + subject (+ materialType 선택) 받음
-     * - 로컬(P2)에 파일 저장 후 Worksheet 생성
-     * - worksheetId 및 fileUrl 반환
-     */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<WorksheetUploadResponseDto> uploadWorksheet(
             @RequestPart("file") MultipartFile file,
@@ -29,9 +23,7 @@ public class WorksheetController {
             @RequestPart(value = "materialType", required = false) String materialType
     ) {
         WorksheetUploadResponseDto data =
-                worksheetService.uploadWorksheetAsMentor(file, title, subject, materialType);
-
-
+                worksheetService.uploadWorksheetAsMentee(file, title, subject, materialType);
 
         return ApiResponse.onSuccess(data);
     }

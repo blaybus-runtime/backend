@@ -12,8 +12,12 @@ public class WorksheetUploadResponseDto {
     private Long worksheetId;
     private String title;
     private String subject;
-    private String materialType;   // "FILE" or "BOOK"
+    private String materialType;
     private String fileUrl;
-    private Long mentorId;
+
+    // ✅ 공통화
+    private Long uploaderId;
+    private String uploaderRole; // "MENTOR" | "MENTEE"
+
     private LocalDateTime createdAt;
 }
