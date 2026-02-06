@@ -39,11 +39,8 @@ public class DailyTodoService {
 
     private final DailyStudyPlannerTodoRepository studyPlannerRepository;
     private final TodoRepository todoRepository;
-<<<<<<< HEAD
     private final UserRepository userRepository;
-=======
     private final TimeRecordRepository timeRecordRepository;
->>>>>>> 9f57146af2d6045723c38477009e96fee8088377
 
     @PersistenceContext
     private EntityManager em;
@@ -97,8 +94,8 @@ public class DailyTodoService {
                 .plannerId(planner.getId())
                 .date(targetDate)
                 .todos(todoDtos)
-<<<<<<< HEAD
-                .build(); //여기
+                .timeRecords(timeRecordDtos)
+                .build();
     }
 
     @Transactional
@@ -107,8 +104,7 @@ public class DailyTodoService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유저를 찾을 수 없습니다."));
 
-        System.out.println("🔍 현재 로그인 유저: " + username);
-        System.out.println("🔍 유저의 Role: [" + user.getRole() + "]");
+
 
         if (user.getRole() != Role.MENTEE) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "멘티 권한이 필요합니다.");
@@ -147,11 +143,9 @@ public class DailyTodoService {
                                 .createdBy("MENTOR")
                                 .build())
                         .toList())
-=======
-                .timeRecords(timeRecordDtos)
->>>>>>> 9f57146af2d6045723c38477009e96fee8088377
                 .build();
     }
+
 
     // 메서드 중복 제거: 하나만 남김
     private MenteeTodoBatchResponse generateTodoBatch(Long menteeUserId, LocalDate startDate, LocalDate endDate,
