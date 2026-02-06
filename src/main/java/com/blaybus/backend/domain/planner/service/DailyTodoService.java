@@ -124,18 +124,28 @@ public class DailyTodoService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "멘티 권한이 필요합니다.");
         }
 
-        return generateTodoBatch(
+        //  멘티도 멘토와 동일하게 V2 로직 사용 (files[] + 파일별 요일)
+        return generateTodoBatchV2(
                 user.getId(),
                 request.getStartDate(),
                 request.getEndDate(),
-                request.getWeekdays(),
+                request.getWeekdays(),   // task 생성 요일(상단)
                 request.getSubject(),
                 request.getTitle(),
                 request.getGoal(),
-                request.getWorksheetId(),
+                //  MenteeTodoBatchRequest.FileItem -> MentorTodoBatchRequest.FileItem 변환 (최소 수정)
+                request.getFiles().stream()
+                        .map(f -> {
+                            MentorTodoBatchRequest.FileItem x = new MentorTodoBatchRequest.FileItem();
+                            x.setWorksheetId(f.getWorksheetId());
+                            x.setWeekdays(f.getWeekdays());
+                            return x;
+                        })
+                        .toList(),
                 "MENTEE"
         );
     }
+
 
     /* =========================
        멘토 생성 (다중 파일 지원)

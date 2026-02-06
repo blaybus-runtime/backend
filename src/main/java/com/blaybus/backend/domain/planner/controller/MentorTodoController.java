@@ -20,6 +20,8 @@ public class MentorTodoController {
     public ResponseEntity<ApiResponse<MentorTodoBatchResponse>> createMentorTodo(
             @Valid @RequestBody MentorTodoBatchRequest request
     ) {
+        System.out.println("✅ MentorTodoController /batch HIT");
+
         MentorTodoBatchResponse result = dailyTodoService.createMentorTodoBatch(request);
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
