@@ -29,6 +29,9 @@ public class DailyTodoResponseDto {
         private Boolean isCompleted;
         private Integer priority;
         private String taskType; // SELF / ASSIGNMENT
+        private String title;
+        private String goal;
+        private Boolean isFeedbackDone;
     }
 
     @Getter

@@ -53,6 +53,18 @@ public class DailyTodoService {
         Long menteeId = user.getId();
         LocalDate targetDate = (date != null) ? date : LocalDate.now();
 
+        return buildDailyResponse(menteeId, targetDate);
+    }
+
+    /**
+     * 멘토가 특정 멘티의 일일 할 일 조회
+     */
+    public DailyTodoResponseDto getDailyForMentee(Long menteeId, LocalDate date) {
+        LocalDate targetDate = (date != null) ? date : LocalDate.now();
+        return buildDailyResponse(menteeId, targetDate);
+    }
+
+    private DailyTodoResponseDto buildDailyResponse(Long menteeId, LocalDate targetDate) {
         Optional<StudyPlanner> plannerOpt =
                 studyPlannerRepository.findTop1ByMentee_UserIdAndPlanDateOrderByCreatedAtDesc(menteeId, targetDate);
 
@@ -61,6 +73,7 @@ public class DailyTodoService {
                     .menteeId(menteeId)
                     .date(targetDate)
                     .todos(Collections.emptyList())
+                    .timeRecords(Collections.emptyList())
                     .build();
         }
 
@@ -75,6 +88,9 @@ public class DailyTodoService {
                         .isCompleted(t.isCompleted())
                         .priority(t.getPriority())
                         .taskType(t.getTaskType().name())
+                        .title(t.getTitle())
+                        .goal(t.getGoal())
+                        .isFeedbackDone(t.getFeedback() != null)
                         .build())
                 .toList();
 
