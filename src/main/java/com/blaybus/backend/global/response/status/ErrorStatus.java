@@ -18,7 +18,9 @@ public enum ErrorStatus {
     // [Task/Planner]
     // ★ 여기에 우리가 필요한 에러를 정의합니다.
     _TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "TASK4001", "해당 할 일을 찾을 수 없습니다."),
-    _PLANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "PLANNER4001", "해당 플래너를 찾을 수 없습니다.");
+    _PLANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "PLANNER4001", "해당 플래너를 찾을 수 없습니다."),
+
+    _WORKSHEET_NOT_FOUND(HttpStatus.NOT_FOUND, "TASK4002", "다운로드할 학습지가 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
