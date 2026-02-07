@@ -12,6 +12,7 @@ import com.blaybus.backend.domain.planner.repository.TodoRepository;
 import com.blaybus.backend.global.exception.GeneralException; // 추가된 import
 import com.blaybus.backend.global.response.status.ErrorStatus; // 추가된 import
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
