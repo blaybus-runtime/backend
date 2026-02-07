@@ -63,8 +63,8 @@ public class MatchingService {
             dailyStudyPlannerTodoRepository.findTop1ByMentee_UserIdAndPlanDateOrderByCreatedAtDesc(menteeId, targetDate)
                     .ifPresent(planner -> {
                         planner.getTasks().stream()
-                                // 학생이 완료했고(true) && 멘토 피드백이 없음(null)
-                                .filter(task -> task.isCompleted() && task.getFeedback() == null)
+                                // 멘토 피드백이 없는 할일 (과제 완료 여부 관계없이)
+                                .filter(task -> task.getFeedback() == null)
                                 .forEach(task -> {
 
                                     // ✅ 수정된 시간 결정 로직 (1:N 대응)
@@ -98,11 +98,11 @@ public class MatchingService {
         return pendingList;
     }
 
-    // 헬퍼 메서드: 특정 멘티가 특정 날짜에 과제를 다 했는지 확인
+    // 헬퍼 메서드: 특정 멘티가 특정 날짜에 피드백이 없는 할일 수 계산
     private int countUnwrittenFeedbacks(Long menteeId, LocalDate date) {
         return dailyStudyPlannerTodoRepository.findTop1ByMentee_UserIdAndPlanDateOrderByCreatedAtDesc(menteeId, date)
                 .map(planner -> (int) planner.getTasks().stream()
-                        .filter(task -> task.isCompleted() && task.getFeedback() == null)
+                        .filter(task -> task.getFeedback() == null)
                         .count())
                 .orElse(0); // 플래너가 없으면 카운트 0
     }
