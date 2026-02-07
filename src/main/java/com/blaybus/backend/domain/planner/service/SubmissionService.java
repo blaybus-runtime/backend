@@ -1,5 +1,6 @@
 package com.blaybus.backend.domain.planner.service;
 
+import com.blaybus.backend.domain.content.service.R2StorageService;
 import com.blaybus.backend.domain.planner.Submission;
 import com.blaybus.backend.domain.planner.SubmissionFile;
 import com.blaybus.backend.domain.planner.TodoTask;
@@ -9,15 +10,12 @@ import com.blaybus.backend.domain.planner.repository.SubmissionFileRepository;
 import com.blaybus.backend.domain.planner.repository.SubmissionRepository;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
-import java.nio.file.*;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -31,9 +29,7 @@ public class SubmissionService {
     private final TodoRepository todoRepository;
     private final SubmissionRepository submissionRepository;
     private final SubmissionFileRepository submissionFileRepository;
-
-    @Value("${app.upload.submissions-dir:uploads/submissions}")
-    private String submissionsDir;
+    private final R2StorageService r2StorageService;
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
@@ -47,7 +43,8 @@ public class SubmissionService {
         }
 
         TodoTask task = todoRepository.findById(taskId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 taskId 입니다. taskId=" + taskId));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "존재하지 않는 taskId 입니다. taskId=" + taskId));
 
         // ✅ 1 task 당 1 submission (없으면 생성 / 있으면 그 submission에 파일 추가)
         Submission submission = submissionRepository.findByTask_IdAndMenteeId(taskId, menteeId)
@@ -61,9 +58,11 @@ public class SubmissionService {
         // 재제출이라면 시간 갱신
         submission.touchSubmittedAt();
 
+        Long submissionId = submission.getId(); // 이미 save 되었거나 기존이라 존재함
+
         List<SubmissionFile> savedFiles = files.stream().map(file -> {
             String fileName = safeOriginalFilename(file);
-            String fileUrl = uploadAndGetUrl(file);
+            String fileUrl = uploadAndGetUrlToR2(file, menteeId, taskId, submissionId);
 
             SubmissionFile sf = SubmissionFile.builder()
                     .submission(submission)
@@ -95,12 +94,21 @@ public class SubmissionService {
     }
 
     /**
-     * WorksheetService와 동일한 방식: 로컬에 저장 후 /files/submissions/{filename} 반환
+     * ✅ R2에 업로드하고 public URL 반환
+     * objectKey 예:
+     * submissions/task-10/mentee-3/submission-55/uuid_original.pdf
      */
-    private String uploadAndGetUrl(MultipartFile file) {
+    private String uploadAndGetUrlToR2(MultipartFile file, Long menteeId, Long taskId, Long submissionId) {
         validateFile(file);
-        String savedName = saveToLocal(file);
-        return "/files/submissions/" + savedName;
+
+        String original = sanitizeFilename(safeOriginalFilename(file));
+        String objectKey = "submissions/"
+                + "task-" + taskId
+                + "/mentee-" + menteeId
+                + "/submission-" + submissionId
+                + "/" + UUID.randomUUID() + "_" + original;
+
+        return r2StorageService.uploadAndGetUrl(file, objectKey);
     }
 
     private void validateFile(MultipartFile file) {
@@ -116,28 +124,15 @@ public class SubmissionService {
         }
     }
 
-    private String saveToLocal(MultipartFile file) {
-        try {
-            Path dir = Paths.get(submissionsDir).toAbsolutePath().normalize();
-            Files.createDirectories(dir);
-
-            String original = safeOriginalFilename(file);
-            String ext = "";
-            int dot = original.lastIndexOf('.');
-            if (dot >= 0) ext = original.substring(dot);
-
-            String savedName = UUID.randomUUID() + ext;
-            Path target = dir.resolve(savedName);
-
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            return savedName;
-        } catch (IOException e) {
-            throw new RuntimeException("failed to save submission file", e);
-        }
-    }
-
     private String safeOriginalFilename(MultipartFile file) {
         String original = file.getOriginalFilename();
         return (original == null || original.isBlank()) ? "file" : original;
+    }
+
+    private String sanitizeFilename(String filename) {
+        // 경로 문자 제거 + 줄바꿈 제거
+        String cleaned = filename.replace("\\", "_").replace("/", "_");
+        cleaned = cleaned.replaceAll("[\\r\\n\\t]", "_");
+        return cleaned;
     }
 }
