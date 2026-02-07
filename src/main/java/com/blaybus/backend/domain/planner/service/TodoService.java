@@ -143,4 +143,20 @@ public class TodoService {
         // 제목에 공백이나 특수문자가 있을 수 있으니 안전하게 처리해도 됨
         return worksheet.getTitle() + "_" + worksheet.getId() + extension;
     }
+
+    /**
+     * [추가] 다운로드 전, 학습지가 존재하는지 검증하는 메서드
+     * - 만약 학습지가 없으면 예외를 던져서, 컨트롤러가 헤더를 설정하기 전에 에러를 반환하게 함.
+     */
+    public void validateWorksheetsExist(Long taskId) {
+        TodoTask task = todoRepository.findById(taskId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._TASK_NOT_FOUND));
+
+        boolean hasWorksheets = task.getTaskWorksheets().stream()
+                .anyMatch(tw -> tw.getWorksheet() != null);
+
+        if (!hasWorksheets) {
+            throw new GeneralException(ErrorStatus._WORKSHEET_NOT_FOUND);
+        }
+    }
 }
