@@ -1,6 +1,7 @@
 package com.blaybus.backend.domain.notification.service;
 
 import com.blaybus.backend.domain.notification.Notification;
+import com.blaybus.backend.domain.notification.dto.event.NotificationEvent;
 import com.blaybus.backend.domain.notification.dto.response.NotificationResponse;
 import com.blaybus.backend.domain.notification.repository.NotificationRepository;
 import com.blaybus.backend.global.exception.GeneralException;
