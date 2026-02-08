@@ -31,6 +31,9 @@ public class MenteeProfile {
     @Column(nullable = false)
     private String highSchool;
 
+    @Column(name = "school_name")
+    private String schoolName;
+
     @Column(name = "target_univ")
     private String targetUniv;
 
@@ -47,11 +50,12 @@ public class MenteeProfile {
 
     @Builder
     public MenteeProfile(User user, String phoneNumber, String email, String highSchool,
-                         Integer grade, String targetUniv, List<String> subjects, String messageToMentor) {
+                         String schoolName, Integer grade, String targetUniv, List<String> subjects, String messageToMentor) {
         this.user = user;
         this.phoneNumber = phoneNumber;
         this.email = email;
         this.highSchool = highSchool;
+        this.schoolName = schoolName != null ? schoolName : (highSchool != null ? highSchool : "");
         this.targetUniv = targetUniv;
         this.grade = grade;
         if (subjects != null) this.subjects = subjects;

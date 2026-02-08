@@ -1,12 +1,12 @@
 package com.blaybus.backend.domain.planner.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import jakarta.validation.constraints.NotEmpty;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,7 +17,7 @@ import java.util.List;
 public class MenteeTodoBatchRequest {
 
     @NotBlank
-    private String subject; // 한글: "국어", "영어", "수학" ...
+    private String subject;
 
     @NotBlank
     private String goal;
@@ -33,9 +33,12 @@ public class MenteeTodoBatchRequest {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
 
-    private Long worksheetId;     // optional
-    private List<String> weekdays; // optional ("월","화","수","목","금","토","일")
-    @NotEmpty
+    private Long worksheetId;      // optional
+    private List<String> weekdays; // optional
+
+    // ✅ optional: 없거나(null)/비어도([]) 통과
+    // ✅ 단, 존재할 경우 내부 FileItem 검증은 유지
+    @Valid
     private List<FileItem> files;
 
     @Getter
@@ -49,4 +52,3 @@ public class MenteeTodoBatchRequest {
         private List<String> weekdays;
     }
 }
-

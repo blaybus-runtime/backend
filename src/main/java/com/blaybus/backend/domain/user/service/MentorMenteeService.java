@@ -59,6 +59,7 @@ public class MentorMenteeService {
                 .phoneNumber(p.getPhoneNumber())
                 .email(p.getEmail())
                 .highSchool(p.getHighSchool())
+                .schoolName(p.getHighSchool())
                 .grade(p.getGrade())
                 .targetUniv(p.getTargetUniv())
                 .subjects(p.getSubjects())
