@@ -66,7 +66,7 @@ public class MemoService {
     }
 
 
-
+    //메모 수정
     @Transactional
     public MemoResponse.Item updateMemo(Long mentorId, Long memoId, MemoRequest.Update req) {
 
@@ -80,6 +80,23 @@ public class MemoService {
 
         memo.updateContent(req.getContent()); // 엔티티에 update 메서드 필요
         return MemoResponse.Item.from(memo);
+    }
+
+
+    //메모 삭제
+    @Transactional
+    public MemoResponse.DeleteResult deleteMemo(Long mentorId, Long memoId) {
+
+        Memo memo = memoRepository.findById(memoId)
+                .orElseThrow(() -> new IllegalArgumentException("메모가 존재하지 않습니다."));
+
+        // 작성자(멘토) 본인 메모인지 확인
+        if (!memo.getMentor().getId().equals(mentorId)) {
+            throw new IllegalArgumentException("삭제 권한이 없습니다.");
+        }
+
+        memoRepository.delete(memo);
+        return MemoResponse.DeleteResult.of(memoId);
     }
 
 

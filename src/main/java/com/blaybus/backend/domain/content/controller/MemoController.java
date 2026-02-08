@@ -62,4 +62,17 @@ public class MemoController {
     }
 
 
+    //메모 삭제
+    @DeleteMapping("/memos/{memoId}")
+    public ApiResponse<MemoResponse.DeleteResult> deleteMemo(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long memoId
+    ) {
+        Long mentorId = userDetails.getUserId();
+        MemoResponse.DeleteResult result = memoService.deleteMemo(mentorId, memoId);
+        return ApiResponse.onSuccess(result);
+    }
+
+
+
 }

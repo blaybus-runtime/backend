@@ -38,4 +38,17 @@ public class MemoResponse {
                     .build();
         }
     }
+
+    @Getter
+    @Builder
+    public static class DeleteResult {
+        private Long memoId;
+
+        public static DeleteResult of(Long memoId) {
+            return DeleteResult.builder()
+                    .memoId(memoId)
+                    .build();
+        }
+    }
+
 }
