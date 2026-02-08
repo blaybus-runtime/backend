@@ -28,4 +28,18 @@ public class MenteeSubmissionController {
         Long menteeId = userDetails.getUserId(); // ✅ 여기
         return ResponseEntity.ok(submissionService.submitFiles(menteeId, taskId, files));
     }
+
+    @PutMapping(value = "/{taskId}/submissions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<SubmissionUploadResponseDto> updateSubmissionFiles(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long taskId,
+            @RequestPart(value = "keepFileIds", required = false) String keepFileIds,
+            @RequestPart(value = "newFiles", required = false) List<MultipartFile> newFiles
+    ) {
+        Long menteeId = userDetails.getUserId();
+        return ResponseEntity.ok(
+                submissionService.updateSubmissionFiles(menteeId, taskId, keepFileIds, newFiles)
+        );
+    }
+
 }
