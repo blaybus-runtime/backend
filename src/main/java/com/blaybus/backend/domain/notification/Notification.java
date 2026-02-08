@@ -2,6 +2,7 @@ package com.blaybus.backend.domain.notification;
 
 import com.blaybus.backend.domain.user.User;
 import com.blaybus.backend.global.entity.BaseTimeEntity;
+import com.blaybus.backend.global.enum_type.NotificationType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
