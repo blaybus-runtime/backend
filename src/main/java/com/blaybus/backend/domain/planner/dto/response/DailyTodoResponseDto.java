@@ -32,6 +32,7 @@ public class DailyTodoResponseDto {
         private String title;
         private String goal;
         private Boolean isFeedbackDone;
+        private Boolean isSubmitted;
 
         // ✅ 추가: 과제에 연결된 파일 목록
         private List<WorksheetDto> worksheets;

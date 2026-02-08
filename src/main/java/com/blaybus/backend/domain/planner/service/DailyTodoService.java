@@ -94,6 +94,9 @@ public class DailyTodoService {
                                     .toList()
                             );
 
+                    // 제출물 존재 여부 확인
+                    boolean hasSubmission = t.getSubmissions() != null && !t.getSubmissions().isEmpty();
+
                     return DailyTodoResponseDto.TodoDto.builder()
                             .id(t.getId())
                             .content(t.getContent())
@@ -104,6 +107,7 @@ public class DailyTodoService {
                             .title(t.getTitle())
                             .goal(t.getGoal())
                             .isFeedbackDone(t.getFeedback() != null && t.getFeedback().getContent() != null)
+                            .isSubmitted(hasSubmission)
                             .worksheets(worksheetDtos)
                             .build();
                 })
