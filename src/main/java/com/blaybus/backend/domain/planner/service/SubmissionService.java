@@ -1,6 +1,8 @@
 package com.blaybus.backend.domain.planner.service;
 
+import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.domain.content.service.R2StorageService;
+import com.blaybus.backend.domain.notification.dto.event.NotificationEvent;
 import com.blaybus.backend.domain.planner.Submission;
 import com.blaybus.backend.domain.planner.SubmissionFile;
 import com.blaybus.backend.domain.planner.TodoTask;
@@ -9,7 +11,11 @@ import com.blaybus.backend.domain.planner.dto.response.SubmissionUploadResponseD
 import com.blaybus.backend.domain.planner.repository.SubmissionFileRepository;
 import com.blaybus.backend.domain.planner.repository.SubmissionRepository;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
+import com.blaybus.backend.domain.user.User;
+import com.blaybus.backend.domain.user.repository.UserRepository;
+import com.blaybus.backend.global.enum_type.NotificationType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +36,8 @@ public class SubmissionService {
     private final SubmissionRepository submissionRepository;
     private final SubmissionFileRepository submissionFileRepository;
     private final R2StorageService r2StorageService;
+    private final UserRepository userRepository; // [추가] 멘티 이름 조회용
+    private final ApplicationEventPublisher eventPublisher; // [추가] 알림 발송용
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
@@ -75,6 +83,12 @@ public class SubmissionService {
             return saved;
         }).collect(Collectors.toList());
 
+        // ==========================================
+        // ▼ [추가] 알림 발송 로직
+        // ==========================================
+        sendSubmissionNotification(menteeId, task);
+        // ==========================================
+
         List<SubmissionFileResponseDto> fileDtos = savedFiles.stream()
                 .map(sf -> SubmissionFileResponseDto.builder()
                         .fileId(sf.getId())
@@ -91,6 +105,50 @@ public class SubmissionService {
                 .submittedAt(submission.getSubmittedAt())
                 .files(fileDtos)
                 .build();
+    }
+
+    /**
+     * [추가] 과제 제출 알림 발송 헬퍼 메서드
+     */
+    private void sendSubmissionNotification(Long menteeId, TodoTask task) {
+        // 1. 멘티 정보 조회 (이름 표시용)
+        User mentee = userRepository.findById(menteeId).orElse(null);
+        if (mentee == null) return;
+
+        // 2. 알림 받을 멘토 찾기
+        User mentorToNotify = findMentorForTask(task);
+
+        // 3. 알림 발송
+        if (mentorToNotify != null) {
+            eventPublisher.publishEvent(new NotificationEvent(
+                    mentorToNotify,
+                    mentee.getName() + " 학생이 과제를 제출했습니다.", // 예: "홍길동 학생이 과제를 제출했습니다."
+                    "/tasks/" + task.getId(), // 멘토가 확인할 페이지 URL
+                    NotificationType.SUBMISSION
+            ));
+        }
+    }
+
+    /**
+     * [추가] Task와 연결된 멘토를 찾는 로직 (구조 변경 대응)
+     */
+    private User findMentorForTask(TodoTask task) {
+        // 우선순위 1: 기존 worksheet 필드 (Legacy)
+        if (task.getWorksheet() != null && task.getWorksheet().getMentor() != null) {
+            return task.getWorksheet().getMentor().getUser();
+        }
+
+        // 우선순위 2: 새로운 taskWorksheets (N:M) 리스트 확인
+        if (task.getTaskWorksheets() != null && !task.getTaskWorksheets().isEmpty()) {
+            // 연결된 첫 번째 학습지의 멘토에게 알림 (보통 과제는 한 멘토가 내주므로)
+            Worksheet firstWorksheet = task.getTaskWorksheets().get(0).getWorksheet();
+            if (firstWorksheet != null && firstWorksheet.getMentor() != null) {
+                return firstWorksheet.getMentor().getUser();
+            }
+        }
+
+        // 멘토가 없는 자습용 Task라면 알림 안 보냄
+        return null;
     }
 
     /**
