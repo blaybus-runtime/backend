@@ -48,4 +48,18 @@ public class MemoController {
         return ApiResponse.onSuccess(result);
     }
 
+
+    //메모 수정
+    @PutMapping("/memos/{memoId}")
+    public ApiResponse<MemoResponse.Item> updateMemo(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long memoId,
+            @Valid @RequestBody MemoRequest.Update request
+    ) {
+        Long mentorId = userDetails.getUserId();
+        MemoResponse.Item result = memoService.updateMemo(mentorId, memoId, request);
+        return ApiResponse.onSuccess(result);
+    }
+
+
 }

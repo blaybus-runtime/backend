@@ -41,4 +41,10 @@ public class Memo extends BaseTimeEntity {
         return new Memo(mentor, mentee, content);
     }
 
+    //메모 수정
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
+
 }

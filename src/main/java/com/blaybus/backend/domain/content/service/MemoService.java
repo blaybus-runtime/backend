@@ -66,4 +66,21 @@ public class MemoService {
     }
 
 
+
+    @Transactional
+    public MemoResponse.Item updateMemo(Long mentorId, Long memoId, MemoRequest.Update req) {
+
+        Memo memo = memoRepository.findById(memoId)
+                .orElseThrow(() -> new IllegalArgumentException("메모가 존재하지 않습니다."));
+
+        // 작성자(멘토) 본인 메모인지 확인
+        if (!memo.getMentor().getId().equals(mentorId)) {
+            throw new IllegalArgumentException("수정 권한이 없습니다.");
+        }
+
+        memo.updateContent(req.getContent()); // 엔티티에 update 메서드 필요
+        return MemoResponse.Item.from(memo);
+    }
+
+
 }

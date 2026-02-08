@@ -10,4 +10,11 @@ public class MemoRequest {
         @NotBlank(message = "content는 필수입니다.")
         private String content;
     }
+
+    @Getter
+    public static class Update {
+        @NotBlank(message = "content는 필수입니다.")
+        private String content;
+    }
+
 }
