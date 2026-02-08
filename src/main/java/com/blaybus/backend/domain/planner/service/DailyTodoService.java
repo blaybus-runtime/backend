@@ -1,6 +1,7 @@
 package com.blaybus.backend.domain.planner.service;
 
 import com.blaybus.backend.domain.content.Worksheet;
+import com.blaybus.backend.domain.notification.dto.event.NotificationEvent;
 import com.blaybus.backend.domain.planner.*;
 import com.blaybus.backend.domain.planner.dto.request.MenteeTodoBatchRequest;
 import com.blaybus.backend.domain.planner.dto.request.MentorTodoBatchRequest;
@@ -11,12 +12,14 @@ import com.blaybus.backend.domain.planner.repository.TodoRepository;
 import com.blaybus.backend.domain.user.MenteeProfile;
 import com.blaybus.backend.domain.user.User;
 import com.blaybus.backend.domain.user.repository.UserRepository;
+import com.blaybus.backend.global.enum_type.NotificationType;
 import com.blaybus.backend.global.enum_type.Role;
 import com.blaybus.backend.global.enum_type.TaskType;
 import com.blaybus.backend.global.util.SecurityUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +39,7 @@ public class DailyTodoService {
     private final TodoRepository todoRepository;
     private final UserRepository userRepository;
     private final TimeRecordRepository timeRecordRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @PersistenceContext
     private EntityManager em;
@@ -192,6 +196,31 @@ public class DailyTodoService {
                 req.getFiles(),         // 파일별 설정
                 "MENTOR"
         );
+
+        // ==========================================
+        // ▼ [추가] 알림 발송 로직 (생성된 건이 있을 때만)
+        // ==========================================
+        if (result.getCreatedCount() > 0) {
+            // 알림 받을 멘티 정보 조회
+            User menteeUser = userRepository.findById(req.getMenteeId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "멘티를 찾을 수 없습니다."));
+
+            // 알림 클릭 시 이동할 URL (과제 시작일의 플래너로 이동)
+            String redirectUrl = "/planner?date=" + req.getStartDate().toString();
+
+            // 알림 메시지 생성 (예: "홍길동 멘토님이 [수학] 과제를 5개 등록했습니다.")
+            String message = String.format("%s 멘토님이 [%s] 과제를 %d개 등록했습니다.",
+                    mentorUser.getName(), req.getSubject(), result.getCreatedCount());
+
+            // 이벤트 발행 -> NotificationService가 받아서 처리함
+            eventPublisher.publishEvent(new NotificationEvent(
+                    menteeUser,
+                    message,
+                    redirectUrl,
+                    NotificationType.NEW_TODO
+            ));
+        }
+        // ▲ [추가 끝]
 
         return MentorTodoBatchResponse.builder()
                 .menteeId(req.getMenteeId())
