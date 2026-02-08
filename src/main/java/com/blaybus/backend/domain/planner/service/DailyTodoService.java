@@ -141,24 +141,28 @@ public class DailyTodoService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "멘티 권한이 필요합니다.");
         }
 
-        //  멘티도 멘토와 동일하게 V2 로직 사용 (files[] + 파일별 요일)
-        return generateTodoBatchV2(
-                user.getId(),
-                request.getStartDate(),
-                request.getEndDate(),
-                request.getWeekdays(),   // task 생성 요일(상단)
-                request.getSubject(),
-                request.getTitle(),
-                request.getGoal(),
-                //  MenteeTodoBatchRequest.FileItem -> MentorTodoBatchRequest.FileItem 변환 (최소 수정)
-                request.getFiles().stream()
+        // ✅ files가 null이어도 안전하게 빈 리스트 처리
+        List<MentorTodoBatchRequest.FileItem> convertedFiles =
+                Optional.ofNullable(request.getFiles())
+                        .orElse(Collections.emptyList())
+                        .stream()
                         .map(f -> {
                             MentorTodoBatchRequest.FileItem x = new MentorTodoBatchRequest.FileItem();
                             x.setWorksheetId(f.getWorksheetId());
                             x.setWeekdays(f.getWeekdays());
                             return x;
                         })
-                        .toList(),
+                        .toList();
+
+        return generateTodoBatchV2(
+                user.getId(),
+                request.getStartDate(),
+                request.getEndDate(),
+                request.getWeekdays(),
+                request.getSubject(),
+                request.getTitle(),
+                request.getGoal(),
+                convertedFiles,
                 "MENTEE"
         );
     }
@@ -297,6 +301,8 @@ public class DailyTodoService {
             List<MentorTodoBatchRequest.FileItem> files,
             String creatorRole
     ) {
+        if (files == null) files = Collections.emptyList();
+
         MenteeProfile mentee = em.find(MenteeProfile.class, menteeUserId);
         if (mentee == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "멘티 프로필이 존재하지 않습니다.");
@@ -318,6 +324,7 @@ public class DailyTodoService {
             Set<DayOfWeek> days = parseWeekdays(fileWeekdays);
             fileConfigs.add(new FileConfig(ws, days, toWeekdayString(fileWeekdays)));
         }
+
 
         List<StudyPlanner> existingPlanners =
                 studyPlannerRepository.findAllByMentee_UserIdAndPlanDateBetween(menteeUserId, startDate, endDate);
