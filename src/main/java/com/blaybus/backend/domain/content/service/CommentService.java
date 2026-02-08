@@ -2,12 +2,15 @@ package com.blaybus.backend.domain.content.service;
 
 import com.blaybus.backend.domain.content.Comment;
 import com.blaybus.backend.domain.content.dto.request.CommentRequest;
+import com.blaybus.backend.domain.content.dto.request.CommentUpdateRequest;
 import com.blaybus.backend.domain.content.dto.response.CommentResponse;
 import com.blaybus.backend.domain.content.repository.CommentRepository;
 import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
 import com.blaybus.backend.domain.user.User;
 import com.blaybus.backend.domain.user.repository.UserRepository;
+import com.blaybus.backend.global.exception.GeneralException;
+import com.blaybus.backend.global.response.status.ErrorStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,5 +55,37 @@ public class CommentService {
         return comments.stream()
                 .map(comment -> CommentResponse.from(comment, currentUserId))
                 .collect(Collectors.toList());
+    }
+
+    // [추가] 댓글 수정
+    @Transactional
+    public void updateComment(Long userId, Long commentId, CommentUpdateRequest request) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._COMMENT_NOT_FOUND));
+
+        // 작성자 검증
+        validateWriter(userId, comment);
+
+        // 내용 변경 (Dirty Checking으로 자동 저장)
+        comment.updateContent(request.content());
+    }
+
+    // [추가] 댓글 삭제
+    @Transactional
+    public void deleteComment(Long userId, Long commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._COMMENT_NOT_FOUND));
+
+        // 작성자 검증
+        validateWriter(userId, comment);
+
+        commentRepository.delete(comment);
+    }
+
+    // [내부 메서드] 작성자 본인 확인 로직
+    private void validateWriter(Long userId, Comment comment) {
+        if (!comment.getUser().getId().equals(userId)) {
+            throw new GeneralException(ErrorStatus._COMMENT_NOT_WRITER);
+        }
     }
 }

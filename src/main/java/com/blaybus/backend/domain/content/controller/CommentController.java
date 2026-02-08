@@ -1,6 +1,7 @@
 package com.blaybus.backend.domain.content.controller;
 
 import com.blaybus.backend.domain.content.dto.request.CommentRequest;
+import com.blaybus.backend.domain.content.dto.request.CommentUpdateRequest;
 import com.blaybus.backend.domain.content.dto.response.CommentResponse;
 import com.blaybus.backend.domain.content.service.CommentService;
 import com.blaybus.backend.global.dto.ApiResponse;
@@ -37,5 +38,32 @@ public class CommentController {
     ) {
         List<CommentResponse> comments = commentService.getComments(taskId, userDetails.getUserId());
         return ApiResponse.onSuccess(comments);
+    }
+
+    /**
+     * [추가] 댓글 수정
+     * PATCH /api/v1/comments/{commentId}
+     */
+    @PatchMapping("/{commentId}")
+    public ApiResponse<String> updateComment(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable(name = "commentId") Long commentId,
+            @RequestBody @Valid CommentUpdateRequest request
+    ) {
+        commentService.updateComment(userDetails.getUserId(), commentId, request);
+        return ApiResponse.onSuccess("댓글이 수정되었습니다.");
+    }
+
+    /**
+     * [추가] 댓글 삭제
+     * DELETE /api/v1/comments/{commentId}
+     */
+    @DeleteMapping("/{commentId}")
+    public ApiResponse<String> deleteComment(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable(name = "commentId") Long commentId
+    ) {
+        commentService.deleteComment(userDetails.getUserId(), commentId);
+        return ApiResponse.onSuccess("댓글이 삭제되었습니다.");
     }
 }
