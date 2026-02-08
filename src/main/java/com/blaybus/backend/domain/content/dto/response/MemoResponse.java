@@ -15,12 +15,14 @@ public class MemoResponse {
         private Long memoId;
         private String content;
         private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
 
         public static Item from(Memo memo) {
             return Item.builder()
                     .memoId(memo.getId())
                     .content(memo.getContent())
                     .createdAt(memo.getCreatedAt())
+                    .updatedAt(memo.getUpdatedAt())
                     .build();
         }
     }
@@ -36,4 +38,17 @@ public class MemoResponse {
                     .build();
         }
     }
+
+    @Getter
+    @Builder
+    public static class DeleteResult {
+        private Long memoId;
+
+        public static DeleteResult of(Long memoId) {
+            return DeleteResult.builder()
+                    .memoId(memoId)
+                    .build();
+        }
+    }
+
 }

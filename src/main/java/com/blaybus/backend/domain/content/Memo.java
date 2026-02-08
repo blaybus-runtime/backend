@@ -29,9 +29,22 @@ public class Memo extends BaseTimeEntity {
     @Column(nullable = false, length = 1000)
     private String content;
 
+    //메모 조회
     public Memo(User mentor, User mentee, String content) {
         this.mentor = mentor;
         this.mentee = mentee;
         this.content = content;
     }
+
+    //메모 작성
+    public static Memo create(User mentor, User mentee, String content) {
+        return new Memo(mentor, mentee, content);
+    }
+
+    //메모 수정
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
+
 }
