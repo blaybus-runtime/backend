@@ -31,7 +31,7 @@ public class MenteeProfile {
     @Column(nullable = false)
     private String highSchool;
 
-    @Column(name = "school_name")
+    @Column(name = "school_name", nullable = false)
     private String schoolName;
 
     @Column(name = "target_univ")

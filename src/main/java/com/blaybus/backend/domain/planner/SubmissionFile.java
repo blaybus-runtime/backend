@@ -9,9 +9,11 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "submission_file")
 public class SubmissionFile {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "submission_file_id")
     private Long id;
 
@@ -19,10 +21,10 @@ public class SubmissionFile {
     @JoinColumn(name = "submission_id", nullable = false)
     private Submission submission;
 
-    @Column(nullable = false)
+    @Column(name = "file_name", nullable = false)
     private String fileName;
 
-    @Column(nullable = false, length = 1000)
+    @Column(name = "file_url", nullable = false, length = 1000)
     private String fileUrl;
 
     @Builder

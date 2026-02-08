@@ -39,11 +39,18 @@ public class MatchingService {
                     // 해당 날짜의 미완료 피드백 개수 계산
                     int feedbackCount = countUnwrittenFeedbacks(menteeId, targetDate);
 
+                    // @ElementCollection(LAZY) subjects를 트랜잭션 안에서 초기화
+                    List<String> subjects = new ArrayList<>(matching.getMentee().getSubjects());
+
                     return MenteeCardResponse.builder()
                             .menteeId(menteeId)
                             .name(matching.getMentee().getUser().getName())
                             .profileImageUrl(matching.getMentee().getUser().getProfileImage())
                             .unwrittenFeedbackCount(feedbackCount)
+                            .highSchool(matching.getMentee().getHighSchool())
+                            .grade(matching.getMentee().getGrade())
+                            .subjects(subjects)
+                            .targetUniv(matching.getMentee().getTargetUniv())
                             .build();
                 })
                 .collect(Collectors.toList());

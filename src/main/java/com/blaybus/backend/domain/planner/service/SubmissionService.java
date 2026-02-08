@@ -22,9 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +43,9 @@ public class SubmissionService {
             "image/jpeg"
     );
 
+    /**
+     * ✅ 최초 제출 / 추가 제출
+     */
     public SubmissionUploadResponseDto submitFiles(Long menteeId, Long taskId, List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "files는 최소 1개 이상 필요합니다.");
@@ -54,7 +55,6 @@ public class SubmissionService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "존재하지 않는 taskId 입니다. taskId=" + taskId));
 
-        // ✅ 1 task 당 1 submission (없으면 생성 / 있으면 그 submission에 파일 추가)
         Submission submission = submissionRepository.findByTask_IdAndMenteeId(taskId, menteeId)
                 .orElseGet(() -> submissionRepository.save(
                         Submission.builder()
@@ -63,10 +63,9 @@ public class SubmissionService {
                                 .build()
                 ));
 
-        // 재제출이라면 시간 갱신
         submission.touchSubmittedAt();
 
-        Long submissionId = submission.getId(); // 이미 save 되었거나 기존이라 존재함
+        Long submissionId = submission.getId();
 
         List<SubmissionFile> savedFiles = files.stream().map(file -> {
             String fileName = safeOriginalFilename(file);
@@ -84,12 +83,125 @@ public class SubmissionService {
         }).collect(Collectors.toList());
 
         // ==========================================
-        // ▼ [추가] 알림 발송 로직
+        // ▼ [추가] 알림 발송 로직 (Merge: 내 로직 살림)
         // ==========================================
         sendSubmissionNotification(menteeId, task);
         // ==========================================
 
-        List<SubmissionFileResponseDto> fileDtos = savedFiles.stream()
+        // (Merge: 리턴은 서버 최신 반영본인 buildResponse 사용)
+        return buildResponse(submission, menteeId, taskId, savedFiles);
+    }
+
+    /**
+     * ✅ 제출 첨부 수정 (최종 상태 동기화)
+     * (Merge: 서버에서 새로 추가된 메서드 유지)
+     */
+    public SubmissionUploadResponseDto updateSubmissionFiles(
+            Long menteeId,
+            Long taskId,
+            String keepFileIdsRaw,
+            List<MultipartFile> newFiles
+    ) {
+        TodoTask task = todoRepository.findById(taskId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "존재하지 않는 taskId 입니다. taskId=" + taskId));
+
+        Submission submission = submissionRepository.findByTask_IdAndMenteeId(taskId, menteeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "제출(submission)이 존재하지 않습니다. taskId=" + taskId));
+
+        submission.touchSubmittedAt();
+
+        Set<Long> keepIds = parseKeepFileIds(keepFileIdsRaw);
+
+        // 🔥 삭제 대상 추출 (ConcurrentModification 방지)
+        List<SubmissionFile> deleteTargets = submission.getFiles().stream()
+                .filter(sf -> !keepIds.contains(sf.getId()))
+                .collect(Collectors.toList());
+
+        // 1️⃣ 기존 파일 삭제
+        for (SubmissionFile sf : deleteTargets) {
+            try {
+                String objectKey = r2StorageService.extractKeyFromUrl(sf.getFileUrl());
+                r2StorageService.delete(objectKey);
+            } catch (Exception ignored) {
+                // best-effort
+            }
+
+            submission.getFiles().remove(sf);
+            submissionFileRepository.delete(sf);
+        }
+
+        // 2️⃣ 새 파일 추가
+        if (newFiles != null && !newFiles.isEmpty()) {
+            Long submissionId = submission.getId();
+
+            for (MultipartFile file : newFiles) {
+                if (file == null || file.isEmpty()) continue;
+
+                String fileName = safeOriginalFilename(file);
+                String fileUrl = uploadAndGetUrlToR2(file, menteeId, taskId, submissionId);
+
+                SubmissionFile sf = SubmissionFile.builder()
+                        .submission(submission)
+                        .fileName(fileName)
+                        .fileUrl(fileUrl)
+                        .build();
+
+                SubmissionFile saved = submissionFileRepository.save(sf);
+                submission.addFile(saved);
+            }
+        }
+
+        // (선택 사항) 수정 시에도 알림을 보내고 싶다면 여기에 sendSubmissionNotification(menteeId, task); 추가
+
+        // ✅ 최종 상태 반환
+        return buildResponse(submission, menteeId, taskId, submission.getFiles());
+    }
+
+    /* =========================
+       🔧 내부 유틸 메서드
+       ========================= */
+
+    private Set<Long> parseKeepFileIds(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Collections.emptySet();
+        }
+
+        String s = raw.trim();
+
+        if (s.startsWith("[") && s.endsWith("]")) {
+            s = s.substring(1, s.length() - 1).trim();
+        }
+
+        if (s.isBlank()) {
+            return Collections.emptySet();
+        }
+
+        try {
+            Set<Long> result = new HashSet<>();
+            for (String token : s.split(",")) {
+                String t = token.trim();
+                if (!t.isEmpty()) {
+                    result.add(Long.parseLong(t));
+                }
+            }
+            return result;
+        } catch (NumberFormatException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "keepFileIds 형식이 올바르지 않습니다. 예: 1,2,3"
+            );
+        }
+    }
+
+    private SubmissionUploadResponseDto buildResponse(
+            Submission submission,
+            Long menteeId,
+            Long taskId,
+            List<SubmissionFile> files
+    ) {
+        List<SubmissionFileResponseDto> fileDtos = files.stream()
                 .map(sf -> SubmissionFileResponseDto.builder()
                         .fileId(sf.getId())
                         .fileName(sf.getFileName())
@@ -108,53 +220,43 @@ public class SubmissionService {
     }
 
     /**
-     * [추가] 과제 제출 알림 발송 헬퍼 메서드
+     * [추가] 과제 제출 알림 발송 헬퍼 메서드 (Merge: 내 로직 살림)
      */
     private void sendSubmissionNotification(Long menteeId, TodoTask task) {
-        // 1. 멘티 정보 조회 (이름 표시용)
         User mentee = userRepository.findById(menteeId).orElse(null);
         if (mentee == null) return;
 
-        // 2. 알림 받을 멘토 찾기
         User mentorToNotify = findMentorForTask(task);
 
-        // 3. 알림 발송
         if (mentorToNotify != null) {
             eventPublisher.publishEvent(new NotificationEvent(
                     mentorToNotify,
-                    mentee.getName() + " 학생이 과제를 제출했습니다.", // 예: "홍길동 학생이 과제를 제출했습니다."
-                    "/tasks/" + task.getId(), // 멘토가 확인할 페이지 URL
+                    mentee.getName() + " 학생이 과제를 제출했습니다.",
+                    "/tasks/" + task.getId(),
                     NotificationType.SUBMISSION
             ));
         }
     }
 
     /**
-     * [추가] Task와 연결된 멘토를 찾는 로직 (구조 변경 대응)
+     * [추가] Task와 연결된 멘토를 찾는 로직 (Merge: 내 로직 살림)
      */
     private User findMentorForTask(TodoTask task) {
-        // 우선순위 1: 기존 worksheet 필드 (Legacy)
         if (task.getWorksheet() != null && task.getWorksheet().getMentor() != null) {
             return task.getWorksheet().getMentor().getUser();
         }
 
-        // 우선순위 2: 새로운 taskWorksheets (N:M) 리스트 확인
         if (task.getTaskWorksheets() != null && !task.getTaskWorksheets().isEmpty()) {
-            // 연결된 첫 번째 학습지의 멘토에게 알림 (보통 과제는 한 멘토가 내주므로)
             Worksheet firstWorksheet = task.getTaskWorksheets().get(0).getWorksheet();
             if (firstWorksheet != null && firstWorksheet.getMentor() != null) {
                 return firstWorksheet.getMentor().getUser();
             }
         }
-
-        // 멘토가 없는 자습용 Task라면 알림 안 보냄
         return null;
     }
 
     /**
      * ✅ R2에 업로드하고 public URL 반환
-     * objectKey 예:
-     * submissions/task-10/mentee-3/submission-55/uuid_original.pdf
      */
     private String uploadAndGetUrlToR2(MultipartFile file, Long menteeId, Long taskId, Long submissionId) {
         validateFile(file);
@@ -188,7 +290,6 @@ public class SubmissionService {
     }
 
     private String sanitizeFilename(String filename) {
-        // 경로 문자 제거 + 줄바꿈 제거
         String cleaned = filename.replace("\\", "_").replace("/", "_");
         cleaned = cleaned.replaceAll("[\\r\\n\\t]", "_");
         return cleaned;
