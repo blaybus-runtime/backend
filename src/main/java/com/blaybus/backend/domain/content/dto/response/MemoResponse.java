@@ -15,12 +15,14 @@ public class MemoResponse {
         private Long memoId;
         private String content;
         private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
 
         public static Item from(Memo memo) {
             return Item.builder()
                     .memoId(memo.getId())
                     .content(memo.getContent())
                     .createdAt(memo.getCreatedAt())
+                    .updatedAt(memo.getUpdatedAt())
                     .build();
         }
     }

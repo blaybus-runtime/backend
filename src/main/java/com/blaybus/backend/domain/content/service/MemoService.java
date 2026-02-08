@@ -1,9 +1,12 @@
 package com.blaybus.backend.domain.content.service;
 
 import com.blaybus.backend.domain.content.Memo;
+import com.blaybus.backend.domain.content.dto.request.MemoRequest;
 import com.blaybus.backend.domain.content.dto.response.MemoResponse;
 import com.blaybus.backend.domain.content.repository.MemoRepository;
 import com.blaybus.backend.domain.match.repository.MatchingRepository;
+import com.blaybus.backend.domain.user.User;
+import com.blaybus.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,8 @@ public class MemoService {
 
     private final MemoRepository memoRepository;
     private final MatchingRepository matchingRepository;
+
+    private final UserRepository userRepository;
 
     private void validateMentorAccess(Long mentorId, Long menteeId) {
         boolean ok = matchingRepository.existsByMentorIdAndMenteeId(mentorId, menteeId);
@@ -42,4 +47,23 @@ public class MemoService {
         );
         return MemoResponse.ListResult.from(memos);
     }
+
+    //메모 작성
+    @Transactional
+    public MemoResponse.Item createMemo(Long mentorId, Long menteeId, MemoRequest.Create req) {
+        validateMentorAccess(mentorId, menteeId);
+
+        User mentor = userRepository.findById(mentorId)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 멘토입니다."));
+
+        User mentee = userRepository.findById(menteeId)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 멘티입니다."));
+
+        Memo memo = Memo.create(mentor, mentee, req.getContent());
+        Memo saved = memoRepository.save(memo);
+
+        return MemoResponse.Item.from(saved);
+    }
+
+
 }

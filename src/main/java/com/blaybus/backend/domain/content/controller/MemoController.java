@@ -7,6 +7,8 @@ import com.blaybus.backend.global.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.blaybus.backend.domain.content.dto.request.MemoRequest;
+import jakarta.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,4 +35,17 @@ public class MemoController {
 
         return ApiResponse.onSuccess(result);
     }
+
+    //메모 작성
+    @PostMapping("/mentees/{menteeId}/memos")
+    public ApiResponse<MemoResponse.Item> createMemo(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long menteeId,
+            @Valid @RequestBody MemoRequest.Create request
+    ) {
+        Long mentorId = userDetails.getUserId();
+        MemoResponse.Item result = memoService.createMemo(mentorId, menteeId, request);
+        return ApiResponse.onSuccess(result);
+    }
+
 }
