@@ -12,9 +12,11 @@ public record TodoTaskSortedResponse (
         String subject,
         TaskType taskType,
         boolean isTaskCompleted,
-        boolean isFeedbackCompleted
+        boolean isFeedbackCompleted,
+        boolean isSubmitted
 ){
     public static TodoTaskSortedResponse from(TodoTask task) {
+        boolean hasSubmission = task.getSubmissions() != null && !task.getSubmissions().isEmpty();
         return TodoTaskSortedResponse.builder()
                 .taskId(task.getId())
                 .title(task.getTitle())
@@ -23,6 +25,7 @@ public record TodoTaskSortedResponse (
                 .taskType(task.getTaskType())
                 .isTaskCompleted(task.isCompleted())
                 .isFeedbackCompleted(task.getFeedback() != null)
+                .isSubmitted(hasSubmission)
                 .build();
     }
 }
