@@ -5,6 +5,7 @@ import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.dto.response.StudyProgressResponse;
 import com.blaybus.backend.domain.planner.dto.response.StudyProgressResponse.*;
 import com.blaybus.backend.domain.planner.repository.DailyStudyPlannerTodoRepository;
+import com.blaybus.backend.domain.planner.repository.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class StudyProgressService {
     private final DailyStudyPlannerTodoRepository dailyTodoRepository;
+    private final SubmissionRepository submissionRepository;
 
     /*
     /api/v1/study/progress 담당하는 메소드입니다.
@@ -27,6 +29,21 @@ public class StudyProgressService {
 
         // menteeId와 일치하는 멘티의 플래너 중 startDate와 endDate 사이의 플래너만 가져옴
         List<StudyPlanner> planners = dailyTodoRepository.findAllByMentee_UserIdAndPlanDateBetween(menteeId, startDate, endDate);
+
+        // ==========================================
+        // ▼ [추가] 조회된 플래너들에 포함된 모든 Task ID 추출
+        // ==========================================
+        List<Long> allTaskIds = planners.stream()
+                .flatMap(p -> p.getTasks().stream())
+                .map(TodoTask::getId)
+                .toList();
+
+        // ▼ [추가] 해당 Task들 중, 실제로 Submission이 존재하는 Task ID만 조회 (Set으로 저장하여 검색 속도 O(1))
+        Set<Long> submittedTaskIds = new HashSet<>();
+        if (!allTaskIds.isEmpty()) {
+            submittedTaskIds = submissionRepository.findTaskIdsByMenteeIdAndTaskIds(menteeId, allTaskIds);
+        }
+        // ==========================================
 
         // 날짜-플래너 조회용 map 하나 생성
         Map<LocalDate, StudyPlanner> plannerMap = planners.stream()
@@ -52,8 +69,13 @@ public class StudyProgressService {
                     subjectStatMap.putIfAbsent(subject, new int[]{0, 0}); // 처음으로 map에 추가하는 거면 초기화
                     subjectStatMap.get(subject)[0]++; // 개수 카운팅
 
+                    // ==========================================
+                    // ▼ [변경] task.isCompleted() 대신 제출 내역 존재 여부로 판단
+                    // ==========================================
+                    boolean isDone = submittedTaskIds.contains(task.getId());
+
                     // 완료한 todo 개수 카운팅
-                    if (task.isCompleted()) {
+                    if (isDone) { // (기존: if (task.isCompleted()))
                         dailyDone++;
                         subjectStatMap.get(subject)[1]++;
                     }
