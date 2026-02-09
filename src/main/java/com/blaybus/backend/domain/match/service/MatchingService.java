@@ -95,7 +95,8 @@ public class MatchingService {
                                             .plannerId(planner.getId())
                                             .taskId(task.getId())
                                             .subject(task.getSubject())
-                                            .taskContent(task.getContent())
+                                            //.taskContent(task.getContent()) 2026-02-10 최상협 content -> title 수정
+                                            .taskContent(task.getTitle())
                                             .completedAt(completedTime) // ✅ 계산된 시간 주입
                                             .build());
                                 });

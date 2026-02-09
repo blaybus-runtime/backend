@@ -52,6 +52,7 @@ public class TodoTask {
     @Column(nullable = false)
     private String goal;
 
+
     @OneToOne(mappedBy = "task", fetch = FetchType.LAZY)
     private Feedback feedback;
 

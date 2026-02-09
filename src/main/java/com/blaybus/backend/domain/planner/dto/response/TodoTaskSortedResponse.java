@@ -10,6 +10,7 @@ public record TodoTaskSortedResponse (
         String title,
         String content,
         String subject,
+        String goal,
         TaskType taskType,
         boolean isTaskCompleted,
         boolean isFeedbackCompleted,
@@ -22,6 +23,7 @@ public record TodoTaskSortedResponse (
                 .title(task.getTitle())
                 .content(task.getContent())
                 .subject(task.getSubject())
+                .goal(task.getGoal())
                 .taskType(task.getTaskType())
                 .isTaskCompleted(task.isCompleted())
                 .isFeedbackCompleted(task.getFeedback() != null)
