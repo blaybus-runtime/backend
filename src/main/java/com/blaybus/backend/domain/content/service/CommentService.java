@@ -5,6 +5,7 @@ import com.blaybus.backend.domain.content.dto.request.CommentRequest;
 import com.blaybus.backend.domain.content.dto.request.CommentUpdateRequest;
 import com.blaybus.backend.domain.content.dto.response.CommentResponse;
 import com.blaybus.backend.domain.content.repository.CommentRepository;
+import com.blaybus.backend.domain.match.repository.MatchingRepository;
 import com.blaybus.backend.domain.notification.dto.event.NotificationEvent;
 import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
@@ -29,7 +30,8 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final TodoRepository todoRepository;
-    private final ApplicationEventPublisher eventPublisher; // [변경] 이거 하나만 있으면 됩니다!
+    private final MatchingRepository matchingRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 댓글 작성 서비스
     @Transactional
@@ -70,15 +72,15 @@ public class CommentService {
     private User determineReceiver(TodoTask task, User writer) {
         // 이 Task의 주인(멘티) 유저를 가져옵니다.
         User taskOwnerMentee = task.getPlanner().getMentee().getUser();
+        Long menteeUserId = taskOwnerMentee.getId();
 
         // 1. 댓글 작성자가 '멘티(학생)'인 경우 -> '멘토'에게 알림
-        if (writer.getId().equals(taskOwnerMentee.getId())) {
-            // Task에 연결된 학습지가 있고, 그 학습지의 멘토가 있다면 그분에게 보냄
-            if (task.getWorksheet() != null && task.getWorksheet().getMentor() != null) {
-                return task.getWorksheet().getMentor().getUser();
-            }
-            // 학습지가 없는 개인 할 일이라면 멘토에게 알림을 안 보낼 수도 있음 (혹은 담당 멘토 조회 로직 추가)
-            return null;
+        if (writer.getId().equals(menteeUserId)) {
+            // 매칭 테이블에서 담당 멘토 조회
+            return matchingRepository.findAllByMenteeId(menteeUserId).stream()
+                    .findFirst()
+                    .map(matching -> matching.getMentor().getUser())
+                    .orElse(null);
         }
 
         // 2. 댓글 작성자가 '멘토'인 경우 (혹은 제3자) -> '멘티'에게 알림

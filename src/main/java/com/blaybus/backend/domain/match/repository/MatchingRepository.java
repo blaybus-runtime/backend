@@ -24,4 +24,11 @@ public interface MatchingRepository extends JpaRepository<Matching, Long> {
     boolean existsByMentorIdAndMenteeId(@Param("mentorId") Long mentorId,
                                         @Param("menteeId") Long menteeId);
 
+    // 멘티 ID로 매칭된 멘토 조회
+    @Query("SELECT m FROM Matching m " +
+            "JOIN FETCH m.mentor mp " +
+            "JOIN FETCH mp.user u " +
+            "WHERE m.mentee.userId = :menteeId")
+    List<Matching> findAllByMenteeId(@Param("menteeId") Long menteeId);
+
 }
