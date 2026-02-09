@@ -5,13 +5,16 @@ import com.blaybus.backend.domain.content.dto.request.CommentRequest;
 import com.blaybus.backend.domain.content.dto.request.CommentUpdateRequest;
 import com.blaybus.backend.domain.content.dto.response.CommentResponse;
 import com.blaybus.backend.domain.content.repository.CommentRepository;
+import com.blaybus.backend.domain.notification.dto.event.NotificationEvent;
 import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
 import com.blaybus.backend.domain.user.User;
 import com.blaybus.backend.domain.user.repository.UserRepository;
+import com.blaybus.backend.global.enum_type.NotificationType;
 import com.blaybus.backend.global.exception.GeneralException;
 import com.blaybus.backend.global.response.status.ErrorStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +29,12 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final TodoRepository todoRepository;
+    private final ApplicationEventPublisher eventPublisher; // [변경] 이거 하나만 있으면 됩니다!
 
     // 댓글 작성 서비스
     @Transactional
     public void createComment(Long userId, CommentRequest request) {
-        User user = userRepository.findById(userId)
+        User writer = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
 
         TodoTask todoTask = todoRepository.findById(request.taskId())
@@ -38,11 +42,47 @@ public class CommentService {
 
         Comment comment = Comment.builder()
                 .content(request.content())
-                .user(user)
+                .user(writer)
                 .todoTask(todoTask)
                 .build();
 
         commentRepository.save(comment);
+
+        // ==========================================
+        // [추가] 3. 알림 이벤트 발행 (핵심 로직)
+        // ==========================================
+
+        // 알림 받을 사람 결정 (헬퍼 메서드 사용)
+        User receiver = determineReceiver(todoTask, writer);
+
+        // 수신자가 존재하고, 본인이 아닐 경우에만 알림 발송
+        if (receiver != null && !receiver.getId().equals(writer.getId())) {
+            eventPublisher.publishEvent(new NotificationEvent(
+                    receiver,                                      // 받는 사람
+                    writer.getName() + "님이 댓글을 남겼습니다.",       // 알림 내용
+                    "/tasks/" + todoTask.getId(),                  // 이동할 URL
+                    NotificationType.NEW_COMMENT                   // 알림 타입
+            ));
+        }
+    }
+
+    // [내부 메서드] 알림 수신자 결정 로직
+    private User determineReceiver(TodoTask task, User writer) {
+        // 이 Task의 주인(멘티) 유저를 가져옵니다.
+        User taskOwnerMentee = task.getPlanner().getMentee().getUser();
+
+        // 1. 댓글 작성자가 '멘티(학생)'인 경우 -> '멘토'에게 알림
+        if (writer.getId().equals(taskOwnerMentee.getId())) {
+            // Task에 연결된 학습지가 있고, 그 학습지의 멘토가 있다면 그분에게 보냄
+            if (task.getWorksheet() != null && task.getWorksheet().getMentor() != null) {
+                return task.getWorksheet().getMentor().getUser();
+            }
+            // 학습지가 없는 개인 할 일이라면 멘토에게 알림을 안 보낼 수도 있음 (혹은 담당 멘토 조회 로직 추가)
+            return null;
+        }
+
+        // 2. 댓글 작성자가 '멘토'인 경우 (혹은 제3자) -> '멘티'에게 알림
+        return taskOwnerMentee;
     }
 
     public List<CommentResponse> getComments(Long taskId, Long currentUserId) {

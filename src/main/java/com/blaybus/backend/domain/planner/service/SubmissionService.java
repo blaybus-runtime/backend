@@ -1,6 +1,8 @@
 package com.blaybus.backend.domain.planner.service;
 
+import com.blaybus.backend.domain.content.Worksheet;
 import com.blaybus.backend.domain.content.service.R2StorageService;
+import com.blaybus.backend.domain.notification.dto.event.NotificationEvent;
 import com.blaybus.backend.domain.planner.Submission;
 import com.blaybus.backend.domain.planner.SubmissionFile;
 import com.blaybus.backend.domain.planner.TodoTask;
@@ -9,7 +11,11 @@ import com.blaybus.backend.domain.planner.dto.response.SubmissionUploadResponseD
 import com.blaybus.backend.domain.planner.repository.SubmissionFileRepository;
 import com.blaybus.backend.domain.planner.repository.SubmissionRepository;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
+import com.blaybus.backend.domain.user.User;
+import com.blaybus.backend.domain.user.repository.UserRepository;
+import com.blaybus.backend.global.enum_type.NotificationType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +34,8 @@ public class SubmissionService {
     private final SubmissionRepository submissionRepository;
     private final SubmissionFileRepository submissionFileRepository;
     private final R2StorageService r2StorageService;
+    private final UserRepository userRepository; // [추가] 멘티 이름 조회용
+    private final ApplicationEventPublisher eventPublisher; // [추가] 알림 발송용
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
@@ -74,15 +82,19 @@ public class SubmissionService {
             return saved;
         }).collect(Collectors.toList());
 
+        // ==========================================
+        // ▼ [추가] 알림 발송 로직 (Merge: 내 로직 살림)
+        // ==========================================
+        sendSubmissionNotification(menteeId, task);
+        // ==========================================
+
+        // (Merge: 리턴은 서버 최신 반영본인 buildResponse 사용)
         return buildResponse(submission, menteeId, taskId, savedFiles);
     }
 
     /**
      * ✅ 제출 첨부 수정 (최종 상태 동기화)
-     *
-     * keepFileIdsRaw 예:
-     *  - "1,2,3"
-     *  - "[1,2,3]"  ← 이것도 방어 처리됨
+     * (Merge: 서버에서 새로 추가된 메서드 유지)
      */
     public SubmissionUploadResponseDto updateSubmissionFiles(
             Long menteeId,
@@ -90,7 +102,7 @@ public class SubmissionService {
             String keepFileIdsRaw,
             List<MultipartFile> newFiles
     ) {
-        todoRepository.findById(taskId)
+        TodoTask task = todoRepository.findById(taskId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "존재하지 않는 taskId 입니다. taskId=" + taskId));
 
@@ -141,6 +153,8 @@ public class SubmissionService {
             }
         }
 
+        // (선택 사항) 수정 시에도 알림을 보내고 싶다면 여기에 sendSubmissionNotification(menteeId, task); 추가
+
         // ✅ 최종 상태 반환
         return buildResponse(submission, menteeId, taskId, submission.getFiles());
     }
@@ -156,7 +170,6 @@ public class SubmissionService {
 
         String s = raw.trim();
 
-        // "[1,2,3]" 방어
         if (s.startsWith("[") && s.endsWith("]")) {
             s = s.substring(1, s.length() - 1).trim();
         }
@@ -206,6 +219,45 @@ public class SubmissionService {
                 .build();
     }
 
+    /**
+     * [추가] 과제 제출 알림 발송 헬퍼 메서드 (Merge: 내 로직 살림)
+     */
+    private void sendSubmissionNotification(Long menteeId, TodoTask task) {
+        User mentee = userRepository.findById(menteeId).orElse(null);
+        if (mentee == null) return;
+
+        User mentorToNotify = findMentorForTask(task);
+
+        if (mentorToNotify != null) {
+            eventPublisher.publishEvent(new NotificationEvent(
+                    mentorToNotify,
+                    mentee.getName() + " 학생이 과제를 제출했습니다.",
+                    "/tasks/" + task.getId(),
+                    NotificationType.SUBMISSION
+            ));
+        }
+    }
+
+    /**
+     * [추가] Task와 연결된 멘토를 찾는 로직 (Merge: 내 로직 살림)
+     */
+    private User findMentorForTask(TodoTask task) {
+        if (task.getWorksheet() != null && task.getWorksheet().getMentor() != null) {
+            return task.getWorksheet().getMentor().getUser();
+        }
+
+        if (task.getTaskWorksheets() != null && !task.getTaskWorksheets().isEmpty()) {
+            Worksheet firstWorksheet = task.getTaskWorksheets().get(0).getWorksheet();
+            if (firstWorksheet != null && firstWorksheet.getMentor() != null) {
+                return firstWorksheet.getMentor().getUser();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * ✅ R2에 업로드하고 public URL 반환
+     */
     private String uploadAndGetUrlToR2(MultipartFile file, Long menteeId, Long taskId, Long submissionId) {
         validateFile(file);
 
