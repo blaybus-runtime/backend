@@ -5,15 +5,18 @@ import com.blaybus.backend.domain.content.dto.request.FeedbackRequest;
 import com.blaybus.backend.domain.content.dto.response.FeedbackResponse;
 import com.blaybus.backend.domain.content.repository.FeedbackFileRepository;
 import com.blaybus.backend.domain.content.repository.FeedbackRepository;
+import com.blaybus.backend.domain.notification.dto.event.NotificationEvent;
 import com.blaybus.backend.domain.planner.TodoTask;
 import com.blaybus.backend.domain.planner.repository.TodoRepository;
 import com.blaybus.backend.domain.user.MentorProfile;
 import com.blaybus.backend.domain.user.User;
 import com.blaybus.backend.domain.user.repository.MentorProfileRepository;
 import com.blaybus.backend.domain.user.repository.UserRepository;
+import com.blaybus.backend.global.enum_type.NotificationType;
 import com.blaybus.backend.global.enum_type.Role;
 import com.blaybus.backend.global.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +47,9 @@ public class FeedbackService {
 
     private final FeedbackFileRepository feedbackFileRepository;
     private final R2StorageService r2StorageService;
+
+    // ▼ [추가] 알림 이벤트를 발행하기 위한 도구
+    private final ApplicationEventPublisher eventPublisher;
 
     //피드백 작성
 //    @Transactional
@@ -168,6 +174,10 @@ public class FeedbackService {
         }
 
         feedback.updateContent(request.content());
+
+        // ▼ [추가] 여기서 알림 발송! (isUpdate = true)
+        // task 정보는 feedback.getTask()로 가져옵니다.
+        sendFeedbackNotification(feedback.getTask(), user, true);
 
         User mentorUser = feedback.getMentor().getUser();
         FeedbackResponse.MentorInfo mentorInfo = new FeedbackResponse.MentorInfo(
@@ -417,6 +427,9 @@ public class FeedbackService {
                 .map(f -> new FeedbackResponse.FileInfo(f.getId(), f.getFileName(), f.getFileUrl()))
                 .toList();
 
+        // ▼ [추가] 여기서 알림 발송! (isUpdate = false)
+        sendFeedbackNotification(task, user, false);
+
         return new FeedbackResponse.Create(
                 feedback.getId(),
                 taskId,
@@ -427,5 +440,27 @@ public class FeedbackService {
         );
     }
 
+
+    /**
+     * [추가] 피드백 알림 발송 헬퍼 메서드
+     */
+    private void sendFeedbackNotification(TodoTask task, User mentor, boolean isUpdate) {
+        // 1. 알림 받을 멘티 찾기 (Task의 주인)
+        // TodoTask -> Planner -> MenteeProfile -> User 순서로 탐색
+        User menteeUser = task.getPlanner().getMentee().getUser();
+
+        // 2. 메시지 결정 (수정인지 신규인지 구분)
+        String message = isUpdate
+                ? mentor.getName() + " 멘토님이 피드백을 수정했습니다."
+                : mentor.getName() + " 멘토님이 피드백을 등록했습니다.";
+
+        // 3. 이벤트 발행
+        eventPublisher.publishEvent(new NotificationEvent(
+                menteeUser,
+                message,
+                "/tasks/" + task.getId(), // 클릭 시 이동할 경로
+                NotificationType.NEW_FEEDBACK
+        ));
+    }
 
 }
