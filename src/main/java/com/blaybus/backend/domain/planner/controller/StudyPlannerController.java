@@ -24,4 +24,13 @@ public class StudyPlannerController {
         Long timeRecordId = studyPlannerService.recordStudyTime(userDetails.getUserId(), request);
         return ApiResponse.onSuccess(timeRecordId);
     }
+
+    @DeleteMapping("/time-records/{recordId}")
+    public ApiResponse<Void> deleteTimeRecord(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long recordId
+    ) {
+        studyPlannerService.deleteTimeRecord(userDetails.getUserId(), recordId);
+        return ApiResponse.onSuccess(null);
+    }
 }

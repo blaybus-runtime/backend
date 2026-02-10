@@ -49,4 +49,11 @@ public class StudyPlanner extends BaseTimeEntity {
         }
         this.studyTime += minutes;
     }
+
+    public void subtractStudyTime(int minutes) {
+        if (this.studyTime == null) {
+            this.studyTime = 0;
+        }
+        this.studyTime = Math.max(0, this.studyTime - minutes);
+    }
 }

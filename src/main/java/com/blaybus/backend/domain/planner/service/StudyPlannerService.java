@@ -60,4 +60,20 @@ public class StudyPlannerService {
 
         return timeRecord.getId();
     }
+
+    public void deleteTimeRecord(Long menteeId, Long recordId) {
+        TimeRecord timeRecord = timeRecordRepository.findById(recordId)
+                .orElseThrow(() -> new RuntimeException("공부 기록이 존재하지 않습니다."));
+
+        StudyPlanner planner = timeRecord.getPlanner();
+
+        if (!planner.getMentee().getUserId().equals(menteeId)) {
+            throw new RuntimeException("자신의 공부 기록만 삭제할 수 있습니다.");
+        }
+
+        long minutes = Duration.between(timeRecord.getStartTime(), timeRecord.getEndTime()).toMinutes();
+        planner.subtractStudyTime((int) minutes);
+
+        timeRecordRepository.delete(timeRecord);
+    }
 }
