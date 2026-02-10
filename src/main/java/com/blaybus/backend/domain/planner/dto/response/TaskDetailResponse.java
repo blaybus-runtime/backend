@@ -18,6 +18,8 @@ public record TaskDetailResponse(
         Long taskId,
         String content,         // 할 일 내용
         String subject,         // 과목
+        String title,           // 과제 제목
+        String goal,            // 학습 목표
         String feedbackContent, // 피드백 내용
 
         List<WorksheetDto> worksheets,  // 학습지 목록
@@ -52,6 +54,8 @@ public record TaskDetailResponse(
                 .taskId(task.getId())
                 .content(task.getContent()) // DB의 content 컬럼
                 .subject(task.getSubject())
+                .title(task.getTitle())
+                .goal(task.getGoal())
                 // 피드백이 존재하면 내용 반환
                 .feedbackContent(task.getFeedback() != null ? task.getFeedback().getContent() : null)
                 .worksheets(worksheetDtos)
