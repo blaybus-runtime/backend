@@ -3,6 +3,7 @@
 ![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Cloudflare R2](https://img.shields.io/badge/Cloudflare%20R2-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)
 
 > **설스터디**는 멘토와 멘티를 연결하여 체계적인 학습 계획(Planner)을 수립하고, 과제 제출 및 피드백을 통해 학습 효율을 극대화하는 멘토링 플랫폼입니다.
@@ -96,6 +97,17 @@ graph TD
     class DB db;
     class R2 r2;
 ```
+---
+
+## 🚀 배포 구조
+
+- 백엔드 서버는 `dev` 브랜치를 기준으로 배포됩니다.
+- Spring Boot 애플리케이션을 Docker 이미지로 빌드합니다.
+- 빌드된 이미지는 Docker Hub에 업로드됩니다.
+- Oracle Cloud VM에서 최신 이미지를 pull 받아 컨테이너로 실행합니다.
+- Cloudflare Tunnel을 통해 인바운드 포트 개방 없이 외부 요청을 안전하게 처리합니다.
+- 환경 변수 및 민감 정보는 서버 내부의 `.env` 파일로 관리합니다.
+
 ---
 
 ## ✨ 핵심 기능 (Key Features)
