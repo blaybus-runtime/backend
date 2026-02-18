@@ -7,28 +7,52 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "submission")
 public class Submission extends BaseTimeEntity {
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "submission_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "task_id")
+    @JoinColumn(name = "task_id", nullable = false)
     private TodoTask task;
 
+    // ✅ JWT에서 꺼낸 유저 id 저장 (멘티 식별)
     @Column(nullable = false)
-    private String fileUrl;
+    private Long menteeId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SubmissionStatus status;
 
     @Column(nullable = false)
-    private String fileName;
+    private LocalDateTime submittedAt;
+
+    @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SubmissionFile> files = new ArrayList<>();
 
     @Builder
-    public Submission(TodoTask task, String fileUrl, String fileName) {
+    public Submission(TodoTask task, Long menteeId) {
         this.task = task;
-        this.fileUrl = fileUrl;
-        this.fileName = fileName;
+        this.menteeId = menteeId;
+        this.status = SubmissionStatus.SUBMITTED;
+        this.submittedAt = LocalDateTime.now();
+    }
+
+    public void addFile(SubmissionFile file) {
+        this.files.add(file);
+    }
+
+    public void touchSubmittedAt() {
+        this.submittedAt = LocalDateTime.now();
+        this.status = SubmissionStatus.SUBMITTED;
     }
 }

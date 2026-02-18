@@ -1,6 +1,6 @@
 package com.blaybus.backend.domain.content.controller;
 
-import com.blaybus.backend.domain.content.dto.StudyColumnSummaryResponse;
+import com.blaybus.backend.domain.content.dto.response.StudyColumnSummaryResponse;
 import com.blaybus.backend.domain.content.service.StudyColumnService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -33,9 +33,6 @@ public class StudyColumnController {
         List<StudyColumnSummaryResponse> columns = studyColumnService.getRecentColumns(limit);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("status", 200);
-        response.put("message", "Success");
-        response.put("data", columns);
 
         return ResponseEntity.ok(response);
     }
