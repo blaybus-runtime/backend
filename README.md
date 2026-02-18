@@ -174,9 +174,14 @@ com.blaybus.backend
 │   └── notification    # 알림(Notification), 이벤트 리스너(EventListener)
 └──...
 ```
+## 🗂 Database Schema
+### [ERD]
+<img width="1840" height="1335" alt="erd_full" src="https://github.com/user-attachments/assets/70a7c5c8-7ab1-477a-b568-0e76d10fecda" />
 
-### 🏃‍♂️ Getting Started
 ---
+
+## 🏃‍♂️ Getting Started
+
 로컬 환경에서 프로젝트를 실행하는 방법입니다.
 
 1. **Clone the repository**
