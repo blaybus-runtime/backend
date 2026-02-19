@@ -24,11 +24,34 @@
 
 ## 👥 팀원 소개 (Team Members) - 백엔드
 
-| 김동수 | 박수빈 | 송정은 |
-|:------:|:------:|:------:|
-| <img src="https://github.com/user-attachments/assets/363c415c-9ac2-4d7a-a840-5ea3896466c2" width="300" /> | <img src="https://github.com/user-attachments/assets/07d096f8-9946-423a-942c-f7f7147229ef" width="300"> | <img  src="https://github.com/user-attachments/assets/be079e13-eb14-47ae-b957-831dfa334c79" width="300" /> |
-| Backend | Backend | Backend |
-| ERD 설계, 학습지 다운로드 로직, 멘토 홈페이지, 알림 기능 구현 | 회원 로그인, MySQL(TiDB) 연결, 피드백 화면, 파일 R2 연동, 서버 배포 구현 | 멘티 홈페이지, 할일 생성 및 관리 로직, 첨부 파일 업로드 기능 구현 |
+<table>
+  <tr>
+    <th align="center">김동수</th>
+    <th align="center">박수빈</th>
+    <th align="center">송정은</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/363c415c-9ac2-4d7a-a840-5ea3896466c2" width="260" height="260" />
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/07d096f8-9946-423a-942c-f7f7147229ef" width="260" height="260" />
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/be079e13-eb14-47ae-b957-831dfa334c79" width="260" height="260" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><b>Backend</b></td>
+    <td align="center"><b>Backend</b></td>
+    <td align="center"><b>Backend</b></td>
+  </tr>
+  <tr>
+    <td align="center">ERD 설계, 학습지 다운로드 로직, 멘토 홈페이지, 알림 기능 구현</td>
+    <td align="center">회원 로그인, MySQL(TiDB) 연결, 피드백 화면, 파일 R2 연동, 서버 배포 구현</td>
+    <td align="center">멘티 홈페이지, 할일 생성 및 관리 로직, 첨부 파일 업로드 기능 구현</td>
+  </tr>
+</table>
 
 ---
 
